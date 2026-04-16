@@ -14,6 +14,12 @@
  *   10. Delete an OKR page (cascades to objectives and KRs)
  *   11. A member without owner role cannot create an OKR page
  *   12. A member without owner role cannot edit an OKR page
+ *
+ * Annual / quarterly hierarchy (new architecture):
+ *   13. Creating a quarterly page auto-creates the annual page if missing
+ *   14. The quarterly page's parentOKRPageId points to the annual page
+ *   15. Creating a quarterly page when the annual already exists reuses it (no duplicate)
+ *   16. Creating a second quarterly page for the same year reuses the same annual page
  */
 import mongoose from 'mongoose';
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
@@ -313,4 +319,89 @@ it('a team member without owner role cannot edit an OKR page', async () => {
   // Title unchanged
   const obj = await Objective.findById(objectiveId).lean();
   expect(obj!.title).not.toBe('Sneaky edit');
+});
+
+// ── 13–16. Annual / quarterly hierarchy ──────────────────────────────────────
+
+it('creating a quarterly page auto-creates the annual page when none exists', async () => {
+  const { teamId, ownerToken } = await setup();
+
+  // No annual page exists yet
+  expect(await OKRPage.countDocuments({ teamId, 'period.type': 'annual' })).toBe(0);
+
+  const res = await postPage(
+    req('POST', '/api/okr-pages', {
+      body: { teamId, periodType: 'quarterly', year: 2025, quarter: 'Q1' },
+      token: ownerToken,
+    })
+  );
+  expect(res.status).toBe(201);
+
+  // Annual page was auto-created
+  const annualPage = await OKRPage.findOne({ teamId, 'period.type': 'annual', 'period.year': 2025 });
+  expect(annualPage).not.toBeNull();
+});
+
+it('the quarterly page parentOKRPageId points to the annual page', async () => {
+  const { teamId, ownerToken } = await setup();
+
+  const res = await postPage(
+    req('POST', '/api/okr-pages', {
+      body: { teamId, periodType: 'quarterly', year: 2025, quarter: 'Q2' },
+      token: ownerToken,
+    })
+  );
+  expect(res.status).toBe(201);
+  const { data: quarterlyPage } = await json(res);
+
+  const annualPage = await OKRPage.findOne({ teamId, 'period.type': 'annual', 'period.year': 2025 });
+  expect(quarterlyPage.parentOKRPageId.toString()).toBe(annualPage!._id.toString());
+});
+
+it('creating a quarterly page when the annual already exists reuses it without creating a duplicate', async () => {
+  const { teamId, ownerToken } = await setup();
+
+  // Pre-create the annual page
+  const { pageId: annualPageId } = await createOKRPage(teamId, { year: 2025, type: 'annual' });
+
+  const res = await postPage(
+    req('POST', '/api/okr-pages', {
+      body: { teamId, periodType: 'quarterly', year: 2025, quarter: 'Q3' },
+      token: ownerToken,
+    })
+  );
+  expect(res.status).toBe(201);
+  const { data: quarterlyPage } = await json(res);
+
+  // Still only one annual page
+  expect(await OKRPage.countDocuments({ teamId, 'period.type': 'annual', 'period.year': 2025 })).toBe(1);
+  // Linked to the pre-existing annual page
+  expect(quarterlyPage.parentOKRPageId.toString()).toBe(annualPageId);
+});
+
+it('creating multiple quarterly pages for the same year all share the same annual parent', async () => {
+  const { teamId, ownerToken } = await setup();
+
+  await postPage(req('POST', '/api/okr-pages', {
+    body: { teamId, periodType: 'quarterly', year: 2025, quarter: 'Q1' },
+    token: ownerToken,
+  }));
+  await postPage(req('POST', '/api/okr-pages', {
+    body: { teamId, periodType: 'quarterly', year: 2025, quarter: 'Q2' },
+    token: ownerToken,
+  }));
+  await postPage(req('POST', '/api/okr-pages', {
+    body: { teamId, periodType: 'quarterly', year: 2025, quarter: 'Q3' },
+    token: ownerToken,
+  }));
+
+  // Still only one annual page regardless of how many quarters were created
+  expect(await OKRPage.countDocuments({ teamId, 'period.type': 'annual', 'period.year': 2025 })).toBe(1);
+  expect(await OKRPage.countDocuments({ teamId, 'period.type': 'quarterly', 'period.year': 2025 })).toBe(3);
+
+  const annualPage = await OKRPage.findOne({ teamId, 'period.type': 'annual', 'period.year': 2025 });
+  const quarterlyPages = await OKRPage.find({ teamId, 'period.type': 'quarterly', 'period.year': 2025 });
+  for (const qPage of quarterlyPages) {
+    expect(qPage.parentOKRPageId!.toString()).toBe(annualPage!._id.toString());
+  }
 });
