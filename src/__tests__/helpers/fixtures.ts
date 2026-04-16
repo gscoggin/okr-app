@@ -136,7 +136,7 @@ export async function createObjective(pageId: string, title = 'Test Objective') 
 
 export async function createKeyResult(
   objectiveId: string,
-  opts: { title?: string; owners?: unknown[] } = {}
+  opts: { title?: string; owners?: object[] } = {}
 ) {
   const kr = await KeyResult.create({
     objectiveId: new mongoose.Types.ObjectId(objectiveId),

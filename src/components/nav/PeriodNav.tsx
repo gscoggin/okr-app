@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { TimePeriod, Quarter } from '@/types';
 import { periodLabel } from '@/types';
@@ -11,13 +12,15 @@ interface PeriodNavProps {
 
 const QUARTERS: Quarter[] = ['Q1', 'Q2', 'Q3', 'Q4'];
 
+function periodUrl(teamId: string, period: TimePeriod): string {
+  if (period.type === 'annual') return `/teams/${teamId}/${period.year}`;
+  return `/teams/${teamId}/${period.year}/${period.quarter!.toLowerCase()}`;
+}
+
 export function PeriodNav({ teamId, current }: PeriodNavProps) {
   const router = useRouter();
 
-  const navigate = (period: TimePeriod) => {
-    const q = period.quarter ? `-${period.quarter.toLowerCase()}` : '';
-    router.push(`/teams/${teamId}/${period.year}${q}`);
-  };
+  const navigate = (period: TimePeriod) => router.push(periodUrl(teamId, period));
 
   const prev = () => {
     if (current.type === 'annual') {
@@ -36,15 +39,6 @@ export function PeriodNav({ teamId, current }: PeriodNavProps) {
       const qi = QUARTERS.indexOf(current.quarter!);
       if (qi === 3) navigate({ type: 'quarterly', year: current.year + 1, quarter: 'Q1' });
       else navigate({ type: 'quarterly', year: current.year, quarter: QUARTERS[qi + 1] });
-    }
-  };
-
-  const switchType = () => {
-    if (current.type === 'annual') {
-      const currentQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}` as Quarter;
-      navigate({ type: 'quarterly', year: current.year, quarter: currentQ });
-    } else {
-      navigate({ type: 'annual', year: current.year });
     }
   };
 
@@ -70,12 +64,15 @@ export function PeriodNav({ teamId, current }: PeriodNavProps) {
         →
       </button>
 
-      <button
-        onClick={switchType}
-        className="ml-2 px-2.5 py-1 rounded-full text-xs border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
-      >
-        {current.type === 'annual' ? 'Quarterly' : 'Annual'}
-      </button>
+      {/* On quarterly pages, link back up to the annual page */}
+      {current.type === 'quarterly' && (
+        <Link
+          href={`/teams/${teamId}/${current.year}`}
+          className="ml-2 px-2.5 py-1 rounded-full text-xs border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
+        >
+          Annual
+        </Link>
+      )}
     </div>
   );
 }

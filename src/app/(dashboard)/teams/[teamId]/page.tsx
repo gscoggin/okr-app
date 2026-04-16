@@ -29,7 +29,7 @@ export default async function TeamRootPage({ params }: Props) {
   }).lean();
 
   if (quarterPage) {
-    redirect(`/teams/${teamId}/${currentYear}-${currentQ.toLowerCase()}`);
+    redirect(`/teams/${teamId}/${currentYear}/${currentQ.toLowerCase()}`);
   }
 
   const annualPage = await OKRPage.findOne({
@@ -42,6 +42,6 @@ export default async function TeamRootPage({ params }: Props) {
     redirect(`/teams/${teamId}/${currentYear}`);
   }
 
-  // No OKR pages yet — redirect to current quarter URL (will show empty state)
-  redirect(`/teams/${teamId}/${currentYear}-${currentQ.toLowerCase()}`);
+  // No OKR pages yet — redirect to current annual URL (will show empty state / create prompt)
+  redirect(`/teams/${teamId}/${currentYear}`);
 }

@@ -2,17 +2,16 @@
 
 import { useState } from 'react';
 import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
-import { periodLabel } from '@/types';
-import type { IOKRPage, TimePeriod } from '@/types';
+import type { IOKRPage } from '@/types';
 
 interface Props {
   teamId: string;
-  period: TimePeriod;
-  canEdit: boolean;
+  year: number;
   teamName: string;
+  canEdit: boolean;
 }
 
-export function CreateOKRPageView({ teamId, period, canEdit, teamName }: Props) {
+export function CreateOKRPageView({ teamId, year, teamName, canEdit }: Props) {
   const [page, setPage] = useState<IOKRPage | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -23,25 +22,18 @@ export function CreateOKRPageView({ teamId, period, canEdit, teamName }: Props) 
     const res = await fetch('/api/okr-pages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        teamId,
-        periodType: period.type,
-        year: period.year,
-        quarter: period.quarter,
-      }),
+      body: JSON.stringify({ teamId, periodType: 'annual', year }),
     });
     const json = await res.json();
     if (res.ok) {
-      const p = json.data;
       setPage({
-        _id: p._id.toString(),
+        _id: json.data._id,
         teamId,
-        period,
-        status: p.status ?? 'draft',
+        period: { type: 'annual', year },
+        status: 'draft',
         objectives: [],
-        parentOKRPageId: p.parentOKRPageId?.toString(),
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
+        createdAt: json.data.createdAt,
+        updatedAt: json.data.updatedAt,
       });
     } else {
       setError(json.error ?? 'Failed to create OKR page');
@@ -56,7 +48,7 @@ export function CreateOKRPageView({ teamId, period, canEdit, teamName }: Props) 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16 text-center">
       <h1 className="text-xl font-bold text-gray-900 mb-2">{teamName}</h1>
-      <p className="text-gray-500 mb-6">No OKRs for {periodLabel(period)} yet.</p>
+      <p className="text-gray-500 mb-6">No annual OKRs for {year} yet.</p>
       {canEdit ? (
         <>
           <button
@@ -64,7 +56,7 @@ export function CreateOKRPageView({ teamId, period, canEdit, teamName }: Props) 
             disabled={creating}
             className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {creating ? 'Creating…' : `Create OKR Page for ${periodLabel(period)}`}
+            {creating ? 'Creating…' : `Create ${year} Annual OKR Page`}
           </button>
           {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
         </>

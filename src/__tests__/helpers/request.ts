@@ -46,10 +46,9 @@ export function req(
 }
 
 /** Read a NextResponse body as parsed JSON */
-export async function json<T = Record<string, unknown>>(
-  res: Response
-): Promise<T> {
-  return res.json() as Promise<T>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function json(res: Response): Promise<any> {
+  return res.json();
 }
 
 /** Shorthand for common HTTP verbs */

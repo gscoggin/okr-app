@@ -120,6 +120,20 @@ export interface IOKRPage {
   updatedAt: string;
 }
 
+// ─── OKR Sidebar Summary ──────────────────────────────────────────────────────
+
+/** Minimal OKR page data used to build the sidebar navigation tree */
+export interface TeamOKRYear {
+  year: number;
+  annualPageId: string | null;
+  quarters: Quarter[]; // which quarters have pages
+}
+
+export interface TeamOKRSummary {
+  teamId: string;
+  years: TeamOKRYear[]; // sorted descending
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export interface AuthPayload {

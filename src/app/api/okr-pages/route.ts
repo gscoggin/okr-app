@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const user = requireAuth(req);
   if (!user) return err('Unauthorized', 401);
 
-  const { teamId, periodType, year, quarter, parentOKRPageId } = await req.json();
+  const { teamId, periodType, year, quarter } = await req.json();
   if (!teamId || !periodType || !year) return err('teamId, periodType, and year are required');
   if (periodType === 'quarterly' && !quarter) return err('quarter is required for quarterly OKRs');
   if (!isTeamOwner(user, teamId)) return err('Forbidden', 403);
@@ -43,10 +43,27 @@ export async function POST(req: NextRequest) {
   });
   if (existing) return err('OKR page already exists for this period', 409);
 
+  // Quarterly pages must be linked to an annual page — auto-create it if missing
+  let resolvedParentId: string | undefined;
+  if (periodType === 'quarterly') {
+    let annualPage = await OKRPage.findOne({
+      teamId,
+      'period.type': 'annual',
+      'period.year': year,
+    });
+    if (!annualPage) {
+      annualPage = await OKRPage.create({
+        teamId,
+        period: { type: 'annual' as PeriodType, year },
+      });
+    }
+    resolvedParentId = annualPage._id.toString();
+  }
+
   const page = await OKRPage.create({
     teamId,
     period: { type: periodType as PeriodType, year, quarter: quarter as Quarter | undefined },
-    parentOKRPageId,
+    parentOKRPageId: resolvedParentId,
   });
 
   return ok(page, 201);
