@@ -1,0 +1,73 @@
+import { NextRequest } from 'next/server';
+import { connectDB } from '@/lib/mongodb';
+import { requireAuth, ok, err } from '@/lib/apiUtils';
+import { isAdmin, isTeamOwner } from '@/lib/auth';
+import KeyResult from '@/models/KeyResult';
+import Objective from '@/models/Objective';
+import OKRPage from '@/models/OKRPage';
+import { computeObjectiveScore } from '@/types';
+
+async function authorizeKR(user: ReturnType<typeof requireAuth>, krId: string) {
+  if (!user) return null;
+  const kr = await KeyResult.findById(krId);
+  if (!kr) return null;
+  const objective = await Objective.findById(kr.objectiveId);
+  if (!objective) return null;
+  const page = await OKRPage.findById(objective.okrPageId);
+  if (!page) return null;
+  if (!isAdmin(user) && !isTeamOwner(user, page.teamId.toString())) return null;
+  return { kr, objective, page };
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ krId: string }> }
+) {
+  const user = requireAuth(req);
+  if (!user) return err('Unauthorized', 401);
+
+  const { krId } = await params;
+  await connectDB();
+
+  const ctx = await authorizeKR(user, krId);
+  if (!ctx) return err('Forbidden or not found', 403);
+
+  const body = await req.json();
+  delete body.objectiveId; // immutable
+
+  Object.assign(ctx.kr, body);
+  await ctx.kr.save();
+
+  // Auto-recompute objective score when KR score changes
+  if (body.score !== undefined) {
+    const allKRs = await KeyResult.find({ objectiveId: ctx.kr.objectiveId }).lean();
+    const newScore = computeObjectiveScore(allKRs);
+    await Objective.findByIdAndUpdate(ctx.kr.objectiveId, { score: newScore });
+  }
+
+  return ok(ctx.kr);
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ krId: string }> }
+) {
+  const user = requireAuth(req);
+  if (!user) return err('Unauthorized', 401);
+
+  const { krId } = await params;
+  await connectDB();
+
+  const ctx = await authorizeKR(user, krId);
+  if (!ctx) return err('Forbidden or not found', 403);
+
+  await KeyResult.findByIdAndDelete(krId);
+
+  // Recompute objective score after deletion
+  const remaining = await KeyResult.find({ objectiveId: ctx.kr.objectiveId }).lean();
+  await Objective.findByIdAndUpdate(ctx.kr.objectiveId, {
+    score: computeObjectiveScore(remaining),
+  });
+
+  return ok({ deleted: true });
+}
