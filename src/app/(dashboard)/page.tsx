@@ -81,6 +81,9 @@ export default async function CompanyDashboard() {
         return (
           <section key={org._id.toString()} className="mb-10">
             <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              {org.iconUrl && (
+                <img src={org.iconUrl} alt="" className="w-6 h-6 rounded object-cover" />
+              )}
               {org.name}
             </h2>
 
@@ -109,7 +112,7 @@ export default async function CompanyDashboard() {
                           const periodSlug =
                             pg.period.type === 'annual'
                               ? `${pg.period.year}`
-                              : `${pg.period.year}-${pg.period.quarter?.toLowerCase()}`;
+                              : `${pg.period.year}/${pg.period.quarter?.toLowerCase()}`;
                           return (
                             <Link
                               key={pg._id.toString()}

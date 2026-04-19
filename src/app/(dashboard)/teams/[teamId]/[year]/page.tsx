@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { connectDB } from '@/lib/mongodb';
 import Team from '@/models/Team';
@@ -29,6 +29,9 @@ export default async function AnnualOKRPage({ params }: Props) {
 
   const user = await getCurrentUser();
   const canEdit = user ? canEditTeamOKR(user, teamId) : false;
+
+  // Members (non-admin, non-owner) go straight to the presentation view
+  if (user && !canEdit) redirect(`/teams/${teamId}/${year}/present`);
 
   const pageDoc = await OKRPage.findOne({
     teamId,
@@ -119,7 +122,7 @@ export default async function AnnualOKRPage({ params }: Props) {
   return (
     <div>
       {breadcrumb}
-      <OKRPageEditor initialPage={serializedPage} canEdit={canEdit} teamId={teamId} />
+      <OKRPageEditor initialPage={serializedPage} canEdit={canEdit} teamId={teamId} teamIconUrl={team.iconUrl ?? undefined} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ export interface TeamDocument extends Document {
   parentTeamId?: mongoose.Types.ObjectId;
   subTeams: mongoose.Types.ObjectId[];
   members: { userId: mongoose.Types.ObjectId; role: TeamRole }[];
+  iconUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +26,7 @@ const TeamSchema = new Schema<TeamDocument>(
         role: { type: String, enum: ['owner', 'member'], default: 'member' },
       },
     ],
+    iconUrl: { type: String },
   },
   { timestamps: true }
 );

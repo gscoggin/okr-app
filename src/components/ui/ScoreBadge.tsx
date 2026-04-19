@@ -5,6 +5,7 @@ export function ScoreBadge({ score }: { score: number | undefined }) {
   const label = score === undefined ? '—' : score.toFixed(2);
   return (
     <span
+      data-testid="score-badge"
       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums ${scoreBgClass(score)}`}
     >
       {label}

@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { IOKRPage, IObjective, IKeyResult, OKRStatus } from '@/types';
 import { computePageScore } from '@/types';
 import { ObjectiveCard } from './ObjectiveCard';
 import { ScoreBadge } from '@/components/ui/ScoreBadge';
+import { IconUpload } from '@/components/ui/IconUpload';
 import { PeriodNav } from '@/components/nav/PeriodNav';
 
 const AUTOSAVE_INTERVAL_MS = 3000;
@@ -15,9 +17,11 @@ interface OKRPageEditorProps {
   initialPage: IOKRPage;
   canEdit: boolean;
   teamId: string;
+  teamIconUrl?: string;
 }
 
-export function OKRPageEditor({ initialPage, canEdit, teamId }: OKRPageEditorProps) {
+export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initialTeamIconUrl }: OKRPageEditorProps) {
+  const [teamIconUrl, setTeamIconUrl] = useState<string | undefined>(initialTeamIconUrl);
   const router = useRouter();
   const [page, setPage] = useState<IOKRPage>(() => {
     // Restore from localStorage draft if available
@@ -36,6 +40,16 @@ export function OKRPageEditor({ initialPage, canEdit, teamId }: OKRPageEditorPro
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const saveTeamIcon = async (dataUrl: string) => {
+    const res = await fetch(`/api/teams/${teamId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ iconUrl: dataUrl }),
+    });
+    if (!res.ok) throw new Error('Failed');
+    setTeamIconUrl(dataUrl);
+  };
   const dirtyRef = useRef(false);
 
   // ── Persist draft to localStorage ──────────────────────────────────────────
@@ -242,7 +256,19 @@ export function OKRPageEditor({ initialPage, canEdit, teamId }: OKRPageEditorPro
     <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-        <div>
+        <div className="flex items-start gap-3">
+          {canEdit && (
+            <IconUpload
+              iconUrl={teamIconUrl}
+              size={44}
+              label={teamId.charAt(0).toUpperCase()}
+              onSave={saveTeamIcon}
+            />
+          )}
+          {!canEdit && teamIconUrl && (
+            <img src={teamIconUrl} alt="team icon" className="w-11 h-11 rounded-xl object-cover border border-gray-200" />
+          )}
+          <div>
           <PeriodNav teamId={teamId} current={page.period} />
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900">OKRs</h1>
@@ -283,9 +309,22 @@ export function OKRPageEditor({ initialPage, canEdit, teamId }: OKRPageEditorPro
               </span>
             )}
           </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 text-sm flex-wrap justify-end">
+          {/* Present button — visible to all roles */}
+          <Link
+            href={
+              page.period.type === 'annual'
+                ? `/teams/${teamId}/${page.period.year}/present`
+                : `/teams/${teamId}/${page.period.year}/${page.period.quarter!.toLowerCase()}/present`
+            }
+            className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+          >
+            Present
+          </Link>
+
           {/* Autosave indicator */}
           <span className="text-xs text-gray-400">
             {saving === 'saving' && 'Saving…'}

@@ -4,6 +4,7 @@ export interface OrgDocument extends Document {
   name: string;
   slug: string;
   teams: mongoose.Types.ObjectId[];
+  iconUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,6 +14,7 @@ const OrgSchema = new Schema<OrgDocument>(
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     teams: [{ type: Schema.Types.ObjectId, ref: 'Team' }],
+    iconUrl: { type: String },
   },
   { timestamps: true }
 );

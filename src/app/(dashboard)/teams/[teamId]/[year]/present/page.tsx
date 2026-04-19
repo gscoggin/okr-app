@@ -1,80 +1,36 @@
 export const dynamic = 'force-dynamic';
 
-import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { connectDB } from '@/lib/mongodb';
 import Team from '@/models/Team';
 import OKRPage from '@/models/OKRPage';
 import Objective from '@/models/Objective';
 import KeyResult from '@/models/KeyResult';
-import { getCurrentUser, canEditTeamOKR } from '@/lib/auth';
-import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
-import { CreateQuarterlyPageView } from './CreateQuarterlyPageView';
-import type { IOKRPage, IObjective, IKeyResult, Quarter } from '@/types';
-
-const VALID_QUARTERS: Record<string, Quarter> = {
-  q1: 'Q1', q2: 'Q2', q3: 'Q3', q4: 'Q4',
-};
+import { PresentationView } from '@/components/presentation/PresentationView';
+import type { IOKRPage, IObjective, IKeyResult } from '@/types';
 
 interface Props {
-  params: Promise<{ teamId: string; year: string; quarter: string }>;
+  params: Promise<{ teamId: string; year: string }>;
 }
 
-export default async function QuarterlyOKRPage({ params }: Props) {
-  const { teamId, year: yearSlug, quarter: quarterSlug } = await params;
+export default async function AnnualPresentPage({ params }: Props) {
+  const { teamId, year: yearSlug } = await params;
 
   const year = parseInt(yearSlug, 10);
   if (isNaN(year) || yearSlug.length !== 4) notFound();
-
-  const quarter = VALID_QUARTERS[quarterSlug.toLowerCase()];
-  if (!quarter) notFound();
 
   await connectDB();
 
   const team = await Team.findById(teamId).lean();
   if (!team) notFound();
 
-  const user = await getCurrentUser();
-  const canEdit = user ? canEditTeamOKR(user, teamId) : false;
-
-  // Members (non-admin, non-owner) go straight to the presentation view
-  if (user && !canEdit) redirect(`/teams/${teamId}/${year}/${quarterSlug.toLowerCase()}/present`);
-
   const pageDoc = await OKRPage.findOne({
     teamId,
-    'period.type': 'quarterly',
+    'period.type': 'annual',
     'period.year': year,
-    'period.quarter': quarter,
   }).lean();
 
-  const breadcrumb = (
-    <div className="border-b border-gray-200 bg-white px-4 sm:px-6 py-3">
-      <nav className="text-sm text-gray-500 flex items-center gap-2">
-        <Link href="/" className="hover:text-gray-700">Company</Link>
-        <span>/</span>
-        <Link href={`/teams/${teamId}`} className="hover:text-gray-700">{team.name}</Link>
-        <span>/</span>
-        <Link href={`/teams/${teamId}/${year}`} className="hover:text-gray-700">{year}</Link>
-        <span>/</span>
-        <span className="text-gray-800 font-medium">{quarter}</span>
-      </nav>
-    </div>
-  );
-
-  if (!pageDoc) {
-    return (
-      <div>
-        {breadcrumb}
-        <CreateQuarterlyPageView
-          teamId={teamId}
-          year={year}
-          quarter={quarter}
-          teamName={team.name}
-          canEdit={canEdit}
-        />
-      </div>
-    );
-  }
+  if (!pageDoc) notFound();
 
   const objectives = await Objective.find({ okrPageId: pageDoc._id }).sort({ sortOrder: 1 }).lean();
   const objectiveIds = objectives.map((o) => o._id);
@@ -119,10 +75,10 @@ export default async function QuarterlyOKRPage({ params }: Props) {
     updatedAt: o.updatedAt.toISOString(),
   }));
 
-  const serializedPage: IOKRPage = {
+  const page: IOKRPage = {
     _id: pageDoc._id.toString(),
     teamId,
-    period: { type: 'quarterly', year, quarter },
+    period: { type: 'annual', year },
     status: pageDoc.status,
     objectives: serializedObjectives,
     parentOKRPageId: pageDoc.parentOKRPageId?.toString(),
@@ -131,9 +87,11 @@ export default async function QuarterlyOKRPage({ params }: Props) {
   };
 
   return (
-    <div>
-      {breadcrumb}
-      <OKRPageEditor initialPage={serializedPage} canEdit={canEdit} teamId={teamId} teamIconUrl={team.iconUrl ?? undefined} />
-    </div>
+    <PresentationView
+      page={page}
+      teamName={team.name}
+      teamIconUrl={team.iconUrl ?? undefined}
+      backHref={`/teams/${teamId}/${year}`}
+    />
   );
 }

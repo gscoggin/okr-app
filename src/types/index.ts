@@ -51,6 +51,7 @@ export interface IOrg {
   name: string;
   slug: string;
   teams: string[];
+  iconUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +66,7 @@ export interface ITeam {
   parentTeamId?: string;
   subTeams: string[];
   members: { userId: string; role: TeamRole }[];
+  iconUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -176,6 +178,16 @@ export function scoreBgClass(score: number | undefined): string {
   if (score >= 0.7) return 'bg-green-100 text-green-700';
   if (score >= 0.4) return 'bg-yellow-100 text-yellow-700';
   return 'bg-red-100 text-red-600';
+}
+
+/** 5-tier score colour for presentation view */
+export function presentationScoreBg(score: number | undefined): string {
+  if (score === undefined || score === null) return 'bg-gray-200 text-gray-500';
+  if (score >= 0.8) return 'bg-green-700 text-white';
+  if (score >= 0.7) return 'bg-green-300 text-green-900';
+  if (score >= 0.5) return 'bg-amber-400 text-amber-900';
+  if (score >= 0.3) return 'bg-red-300 text-red-900';
+  return 'bg-red-700 text-white';
 }
 
 export function confidenceColorClass(c: ConfidenceLevel | undefined): string {

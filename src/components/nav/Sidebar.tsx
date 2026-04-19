@@ -70,26 +70,27 @@ export function Sidebar({ orgs, teams, teamSummaries }: SidebarProps) {
 
       {orgs.map((org) => (
         <div key={org._id} className="mb-1">
-          <button
-            onClick={() => toggle(org._id)}
-            className="flex items-center w-full px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md font-medium"
-          >
-            <ChevronIcon open={!!expanded[org._id]} />
-            {org.name}
-          </button>
+          <div className="flex items-center">
+            <button
+              onClick={() => toggle(org._id)}
+              className="p-0.5 text-gray-400 hover:text-gray-600 shrink-0"
+            >
+              <ChevronIcon open={!!expanded[org._id]} small />
+            </button>
+            <Link
+              href={`/orgs/${org._id}`}
+              className={`flex-1 px-2 py-1.5 text-sm rounded-md font-medium ${
+                pathname === `/orgs/${org._id}`
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {org.name}
+            </Link>
+          </div>
 
           {expanded[org._id] && (
             <div className="ml-4 mt-0.5 space-y-0.5">
-              <Link
-                href={`/orgs/${org._id}`}
-                className={`block px-2 py-1 text-sm rounded-md ${
-                  pathname === `/orgs/${org._id}`
-                    ? 'bg-blue-50 text-blue-700 font-medium'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                Overview
-              </Link>
               {teamsByOrg(org._id).map((team) => (
                 <TeamNavItem
                   key={team._id}

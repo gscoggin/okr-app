@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { IconUpload } from '@/components/ui/IconUpload';
 import type { IOrg, ITeam, IUser } from '@/types';
 
 interface ArchiveItem {
@@ -58,12 +59,20 @@ export default function AdminPage() {
   const [teamSaving, setTeamSaving] = useState(false);
   const [teamError, setTeamError] = useState('');
 
-  // Member form
+  // Member form (standalone)
   const [memberUserId, setMemberUserId] = useState('');
   const [memberTeamId, setMemberTeamId] = useState('');
   const [memberRole, setMemberRole] = useState<'owner' | 'member'>('member');
   const [memberSaving, setMemberSaving] = useState(false);
   const [memberError, setMemberError] = useState('');
+
+  // Inline member management (per-team expansion in Teams section)
+  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
+  const [inlineTeamId, setInlineTeamId] = useState('');
+  const [inlineUserId, setInlineUserId] = useState('');
+  const [inlineRole, setInlineRole] = useState<'owner' | 'member'>('member');
+  const [inlineSaving, setInlineSaving] = useState(false);
+  const [inlineError, setInlineError] = useState('');
 
   // Danger zone — reset OKR data
   const [resetStep, setResetStep] = useState<'idle' | 'creds' | 'confirm'>('idle');
@@ -261,26 +270,33 @@ export default function AdminPage() {
 
   // ── Member actions ──────────────────────────────────────────────────────────
 
-  const addMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMemberError('');
-    setMemberSaving(true);
-    const res = await fetch(`/api/teams/${memberTeamId}/members`, {
+  const toggleTeamExpand = (teamId: string) => {
+    setExpandedTeams((e) => ({ ...e, [teamId]: !e[teamId] }));
+    setInlineUserId('');
+    setInlineRole('member');
+    setInlineError('');
+    setInlineTeamId(teamId);
+  };
+
+  const addInlineMember = async (teamId: string) => {
+    setInlineError('');
+    setInlineSaving(true);
+    setInlineTeamId(teamId);
+    const res = await fetch(`/api/teams/${teamId}/members`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: memberUserId, role: memberRole }),
+      body: JSON.stringify({ userId: inlineUserId, role: inlineRole }),
     });
     const json = await res.json();
     if (res.ok) {
       const teamsRes = await fetch('/api/teams');
       if (teamsRes.ok) setTeams((await teamsRes.json()).data ?? []);
-      setMemberUserId('');
-      setMemberTeamId('');
-      setMemberRole('member');
+      setInlineUserId('');
+      setInlineRole('member');
     } else {
-      setMemberError(json.error ?? 'Failed to add member');
+      setInlineError(json.error ?? 'Failed to add member');
     }
-    setMemberSaving(false);
+    setInlineSaving(false);
   };
 
   const removeMember = async (teamId: string, userId: string) => {
@@ -330,6 +346,26 @@ export default function AdminPage() {
     setResetWorking(false);
   };
 
+  const saveOrgIcon = async (orgId: string, dataUrl: string) => {
+    const res = await fetch(`/api/orgs/${orgId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ iconUrl: dataUrl }),
+    });
+    if (res.ok) setOrgs((prev) => prev.map((o) => o._id === orgId ? { ...o, iconUrl: dataUrl } : o));
+    else throw new Error('Failed');
+  };
+
+  const saveTeamIcon = async (teamId: string, dataUrl: string) => {
+    const res = await fetch(`/api/teams/${teamId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ iconUrl: dataUrl }),
+    });
+    if (res.ok) setTeams((prev) => prev.map((t) => t._id === teamId ? { ...t, iconUrl: dataUrl } : t));
+    else throw new Error('Failed');
+  };
+
   if (!user || user.role !== 'admin') return null;
 
   const teamsInOrg = (orgId: string) => teams.filter((t) => t.orgId === orgId);
@@ -355,6 +391,12 @@ export default function AdminPage() {
               <ul className="mb-4 divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
                 {orgs.map((org) => (
                   <li key={org._id} className="px-4 py-3 bg-white flex items-center gap-3">
+                    <IconUpload
+                      iconUrl={org.iconUrl}
+                      size={36}
+                      label={org.name.charAt(0).toUpperCase()}
+                      onSave={(url) => saveOrgIcon(org._id, url)}
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800">{org.name}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -435,56 +477,142 @@ export default function AdminPage() {
                       {orgTeams.length === 0 ? (
                         <p className="text-sm text-gray-400 mb-2 pl-2">No teams yet.</p>
                       ) : (
-                        <ul className="mb-2 divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+                        <div className="mb-2 space-y-1">
                           {orgTeams.map((team) => {
                             const parent = teams.find((t) => t._id === team.parentTeamId);
+                            const isExpanded = !!expandedTeams[team._id];
+                            const nonMembers = users.filter((u) => !team.members.find((m) => m.userId === u._id));
                             return (
-                              <li key={team._id} className="px-4 py-3 bg-white flex items-center gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-800">{team.name}</p>
-                                  {parent && <p className="text-xs text-gray-400 mt-0.5">Sub-team of {parent.name}</p>}
+                              <div key={team._id} className="border border-gray-200 rounded-xl overflow-hidden">
+                                {/* Team header row */}
+                                <div className="px-4 py-3 bg-white flex items-center gap-3">
+                                  <IconUpload
+                                    iconUrl={team.iconUrl}
+                                    size={32}
+                                    label={team.name.charAt(0).toUpperCase()}
+                                    onSave={(url) => saveTeamIcon(team._id, url)}
+                                  />
+                                  <button
+                                    onClick={() => toggleTeamExpand(team._id)}
+                                    className="flex-1 flex items-center gap-2 text-left min-w-0"
+                                  >
+                                    <ChevronIcon open={isExpanded} small />
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-gray-800">{team.name}</p>
+                                      {parent && <p className="text-xs text-gray-400 mt-0.5">Sub-team of {parent.name}</p>}
+                                    </div>
+                                    <span className="text-xs text-gray-400 shrink-0">
+                                      {team.members.length} member{team.members.length !== 1 ? 's' : ''}
+                                    </span>
+                                  </button>
+
+                                  {confirmArchiveTeam === team._id ? (
+                                    <span className="flex items-center gap-2 text-xs shrink-0">
+                                      <span className="text-gray-500">Archive team + OKRs?</span>
+                                      <button
+                                        onClick={() => archiveTeam(team._id)}
+                                        disabled={archivingId === team._id}
+                                        className="text-amber-600 font-medium hover:text-amber-800 disabled:opacity-50"
+                                      >
+                                        {archivingId === team._id ? 'Archiving…' : 'Archive'}
+                                      </button>
+                                      <button onClick={() => setConfirmArchiveTeam('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                                    </span>
+                                  ) : confirmDeleteTeam === team._id ? (
+                                    <span className="flex items-center gap-2 text-xs shrink-0">
+                                      <span className="text-gray-500">Delete team + OKRs?</span>
+                                      <button onClick={() => deleteTeam(team._id)} className="text-red-600 font-medium hover:text-red-800">Yes</button>
+                                      <button onClick={() => setConfirmDeleteTeam('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                                    </span>
+                                  ) : (
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <button
+                                        onClick={() => { setConfirmArchiveTeam(team._id); setConfirmDeleteTeam(''); }}
+                                        className="text-gray-300 hover:text-amber-400 transition"
+                                        title="Archive team"
+                                      >
+                                        <ArchiveIcon />
+                                      </button>
+                                      <button
+                                        onClick={() => { setConfirmDeleteTeam(team._id); setConfirmArchiveTeam(''); }}
+                                        className="text-gray-300 hover:text-red-400 transition"
+                                        title="Delete team"
+                                      >
+                                        <TrashIcon />
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
 
-                                {confirmArchiveTeam === team._id ? (
-                                  <span className="flex items-center gap-2 text-xs">
-                                    <span className="text-gray-500">Archive team + OKRs?</span>
-                                    <button
-                                      onClick={() => archiveTeam(team._id)}
-                                      disabled={archivingId === team._id}
-                                      className="text-amber-600 font-medium hover:text-amber-800 disabled:opacity-50"
-                                    >
-                                      {archivingId === team._id ? 'Archiving…' : 'Archive'}
-                                    </button>
-                                    <button onClick={() => setConfirmArchiveTeam('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
-                                  </span>
-                                ) : confirmDeleteTeam === team._id ? (
-                                  <span className="flex items-center gap-2 text-xs">
-                                    <span className="text-gray-500">Delete team + OKRs?</span>
-                                    <button onClick={() => deleteTeam(team._id)} className="text-red-600 font-medium hover:text-red-800">Yes</button>
-                                    <button onClick={() => setConfirmDeleteTeam('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
-                                  </span>
-                                ) : (
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => { setConfirmArchiveTeam(team._id); setConfirmDeleteTeam(''); }}
-                                      className="text-gray-300 hover:text-amber-400 transition"
-                                      title="Archive team"
-                                    >
-                                      <ArchiveIcon />
-                                    </button>
-                                    <button
-                                      onClick={() => { setConfirmDeleteTeam(team._id); setConfirmArchiveTeam(''); }}
-                                      className="text-gray-300 hover:text-red-400 transition"
-                                      title="Delete team"
-                                    >
-                                      <TrashIcon />
-                                    </button>
+                                {/* Expanded: member chips + add row */}
+                                {isExpanded && (
+                                  <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-3">
+                                    {/* Member chips */}
+                                    {team.members.length === 0 ? (
+                                      <p className="text-xs text-gray-400">No members yet.</p>
+                                    ) : (
+                                      <div className="flex flex-wrap gap-2">
+                                        {team.members.map((m) => {
+                                          const u = userById(m.userId);
+                                          return (
+                                            <span key={m.userId} className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 bg-white border border-gray-200 rounded-full text-xs">
+                                              <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-medium uppercase text-[10px] shrink-0">
+                                                {u?.name?.[0] ?? '?'}
+                                              </span>
+                                              <span className="font-medium text-gray-700">{u?.name ?? m.userId}</span>
+                                              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${m.role === 'owner' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {m.role}
+                                              </span>
+                                              <button
+                                                onClick={() => removeMember(team._id, m.userId)}
+                                                className="text-gray-300 hover:text-red-400 transition leading-none ml-0.5"
+                                                title="Remove"
+                                              >
+                                                ×
+                                              </button>
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+
+                                    {/* Add member row */}
+                                    <div className="flex gap-2">
+                                      <select
+                                        value={inlineTeamId === team._id ? inlineUserId : ''}
+                                        onChange={(e) => { setInlineTeamId(team._id); setInlineUserId(e.target.value); }}
+                                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      >
+                                        <option value="">Add member…</option>
+                                        {nonMembers.map((u) => (
+                                          <option key={u._id} value={u._id}>{u.name}</option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        value={inlineTeamId === team._id ? inlineRole : 'member'}
+                                        onChange={(e) => { setInlineTeamId(team._id); setInlineRole(e.target.value as 'owner' | 'member'); }}
+                                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      >
+                                        <option value="member">Member</option>
+                                        <option value="owner">Owner</option>
+                                      </select>
+                                      <button
+                                        onClick={() => addInlineMember(team._id)}
+                                        disabled={inlineTeamId !== team._id || !inlineUserId || inlineSaving}
+                                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-40 transition"
+                                      >
+                                        {inlineSaving && inlineTeamId === team._id ? '…' : 'Add'}
+                                      </button>
+                                    </div>
+                                    {inlineError && inlineTeamId === team._id && (
+                                      <p className="text-xs text-red-500">{inlineError}</p>
+                                    )}
                                   </div>
                                 )}
-                              </li>
+                              </div>
                             );
                           })}
-                        </ul>
+                        </div>
                       )}
                     </div>
                   );
@@ -527,78 +655,6 @@ export default function AdminPage() {
                     {teamSaving ? 'Creating…' : 'Create Team'}
                   </button>
                   {teamError && <p className="text-sm text-red-500">{teamError}</p>}
-                </form>
-              </>
-            )}
-          </section>
-
-          {/* ── Team Members ─────────────────────────────────────────────────── */}
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Team Members</h2>
-
-            {teams.length === 0 ? (
-              <p className="text-sm text-gray-400">Create a team first.</p>
-            ) : (
-              <>
-                <div className="mb-6 space-y-3">
-                  {teams.map((team) => (
-                    <div key={team._id} className="border border-gray-200 rounded-xl overflow-hidden">
-                      <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                        <p className="text-sm font-medium text-gray-700">{team.name}</p>
-                        <p className="text-xs text-gray-400">{orgs.find(o => o._id === team.orgId)?.name}</p>
-                      </div>
-                      {team.members.length === 0 ? (
-                        <p className="text-sm text-gray-400 px-4 py-3">No members yet.</p>
-                      ) : (
-                        <ul className="divide-y divide-gray-100">
-                          {team.members.map((m) => {
-                            const u = userById(m.userId);
-                            return (
-                              <li key={m.userId} className="flex items-center px-4 py-2.5 bg-white gap-3">
-                                <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium uppercase shrink-0">
-                                  {u?.name?.[0] ?? '?'}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-800 truncate">{u?.name ?? m.userId}</p>
-                                  <p className="text-xs text-gray-400 truncate">{u?.email}</p>
-                                </div>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.role === 'owner' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                                  {m.role}
-                                </span>
-                                <button onClick={() => removeMember(team._id, m.userId)} className="text-xs text-red-400 hover:text-red-600 transition ml-1">
-                                  Remove
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <form onSubmit={addMember} className="space-y-3 border border-gray-200 rounded-xl p-4 bg-gray-50">
-                  <p className="text-sm font-medium text-gray-700">Add Member to Team</p>
-                  <select value={memberUserId} onChange={(e) => setMemberUserId(e.target.value)} required className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="">Select user…</option>
-                    {users.map((u) => (
-                      <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
-                    ))}
-                  </select>
-                  <select value={memberTeamId} onChange={(e) => setMemberTeamId(e.target.value)} required className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="">Select team…</option>
-                    {teams.map((t) => (
-                      <option key={t._id} value={t._id}>{t.name}</option>
-                    ))}
-                  </select>
-                  <select value={memberRole} onChange={(e) => setMemberRole(e.target.value as 'owner' | 'member')} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="member">Member</option>
-                    <option value="owner">Owner (can edit &amp; publish OKRs)</option>
-                  </select>
-                  <button type="submit" disabled={memberSaving} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
-                    {memberSaving ? 'Adding…' : 'Add to Team'}
-                  </button>
-                  {memberError && <p className="text-sm text-red-500">{memberError}</p>}
                 </form>
               </>
             )}
@@ -850,6 +906,21 @@ export default function AdminPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function ChevronIcon({ open, small }: { open: boolean; small?: boolean }) {
+  const size = small ? 'w-3 h-3' : 'w-4 h-4';
+  return (
+    <svg
+      className={`${size} mr-1 text-gray-400 transition-transform shrink-0 ${open ? 'rotate-90' : ''}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
   );
 }
 
