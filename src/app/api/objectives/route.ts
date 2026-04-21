@@ -21,15 +21,19 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(user) && !isTeamOwner(user, page.teamId.toString())) return err('Forbidden', 403);
 
   const count = await Objective.countDocuments({ okrPageId });
-  const objective = await Objective.create({
-    okrPageId,
-    title,
-    owners: owners ?? [],
-    priority,
-    comments,
-    parentObjectiveId,
-    sortOrder: sortOrder ?? count,
-  });
-
-  return ok(objective, 201);
+  try {
+    const objective = await Objective.create({
+      okrPageId,
+      title,
+      owners: owners ?? [],
+      priority,
+      comments,
+      parentObjectiveId,
+      sortOrder: sortOrder ?? count,
+    });
+    return ok(objective, 201);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return err(msg, 500);
+  }
 }

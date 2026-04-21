@@ -17,7 +17,7 @@ export async function GET(
   const { pageId } = await params;
   await connectDB();
 
-  const page = await OKRPage.findById(pageId).lean();
+  const page = await OKRPage.findOne({ _id: pageId, tenantId: user.tenantId }).lean();
   if (!page) return err('OKR page not found', 404);
 
   const objectives = await Objective.find({ okrPageId: pageId })
@@ -58,7 +58,7 @@ export async function PATCH(
   const { pageId } = await params;
   await connectDB();
 
-  const page = await OKRPage.findById(pageId);
+  const page = await OKRPage.findOne({ _id: pageId, tenantId: user.tenantId });
   if (!page) return err('OKR page not found', 404);
 
   const teamId = page.teamId.toString();
@@ -95,7 +95,7 @@ export async function DELETE(
   const { pageId } = await params;
   await connectDB();
 
-  const page = await OKRPage.findById(pageId);
+  const page = await OKRPage.findOne({ _id: pageId, tenantId: user.tenantId });
   if (!page) return err('OKR page not found', 404);
 
   if (!isAdmin(user) && !isTeamOwner(user, page.teamId.toString())) return err('Forbidden', 403);

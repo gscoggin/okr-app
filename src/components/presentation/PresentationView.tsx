@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { IOKRPage, IObjective, IKeyResult } from '@/types';
 import { presentationScoreBg, computePageScore, periodLabel } from '@/types';
+import { RingGauge } from '@/components/ui/RingGauge';
 
 function ScoreChip({ score }: { score: number | undefined }) {
   const cls = presentationScoreBg(score);
@@ -20,7 +21,7 @@ function KRRow({ kr }: { kr: IKeyResult }) {
     <div className="py-4 px-5 border-b border-gray-100 last:border-0">
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm font-medium text-gray-800 leading-snug flex-1">{kr.title}</p>
-        <ScoreChip score={kr.score} />
+        <RingGauge score={kr.score ?? null} size={40} />
       </div>
 
       <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
@@ -81,7 +82,7 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
           {objective.title}
         </span>
 
-        <ScoreChip score={objective.score} />
+        <RingGauge score={objective.score ?? null} size={52} />
       </button>
 
       {/* Owners row */}
@@ -126,10 +127,10 @@ interface PresentationViewProps {
   page: IOKRPage;
   teamName: string;
   teamIconUrl?: string;
-  backHref: string;
+  editHref?: string; // present if viewer has edit rights
 }
 
-export function PresentationView({ page, teamName, teamIconUrl, backHref }: PresentationViewProps) {
+export function PresentationView({ page, teamName, teamIconUrl, editHref }: PresentationViewProps) {
   const pageScore = computePageScore(page.objectives);
   const period = periodLabel(page.period);
 
@@ -138,25 +139,17 @@ export function PresentationView({ page, teamName, teamIconUrl, backHref }: Pres
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
-          <Link
-            href={backHref}
-            className="text-xs text-gray-400 hover:text-gray-600 transition mb-2 inline-block"
-          >
-            ← Back to edit view
-          </Link>
           <div className="flex items-center gap-3">
             {teamIconUrl && (
               <img src={teamIconUrl} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
             )}
             <h1 className="text-2xl font-bold text-gray-900">{teamName}</h1>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">{period} — Presentation</p>
+          <p className="text-sm text-gray-500 mt-0.5">{period}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-400 uppercase tracking-wide font-medium">Overall</span>
-          <span className="scale-125 origin-left">
-            <ScoreChip score={pageScore} />
-          </span>
+          <RingGauge score={pageScore ?? null} size={64} />
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
               page.status === 'published'
@@ -166,6 +159,14 @@ export function PresentationView({ page, teamName, teamIconUrl, backHref }: Pres
           >
             {page.status === 'published' ? 'Published' : 'Draft'}
           </span>
+          {editHref && (
+            <Link
+              href={editHref}
+              className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+            >
+              Edit
+            </Link>
+          )}
         </div>
       </div>
 

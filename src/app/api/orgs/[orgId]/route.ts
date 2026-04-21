@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ orgI
 
   const { orgId } = await params;
   await connectDB();
-  const org = await Org.findById(orgId).populate('teams').lean();
+  const org = await Org.findOne({ _id: orgId, tenantId: user.tenantId }).populate('teams').lean();
   if (!org) return err('Org not found', 404);
   return ok(org);
 }
@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ or
   const { orgId } = await params;
   const body = await req.json();
   await connectDB();
-  const org = await Org.findByIdAndUpdate(orgId, body, { new: true });
+  const org = await Org.findOneAndUpdate({ _id: orgId, tenantId: user.tenantId }, body, { new: true });
   if (!org) return err('Org not found', 404);
   return ok(org);
 }
@@ -41,6 +41,9 @@ export async function DELETE(
   const { orgId } = await params;
   await connectDB();
 
+  const org = await Org.findOne({ _id: orgId, tenantId: user.tenantId });
+  if (!org) return err('Org not found', 404);
+
   // Cascade: teams → OKR pages → objectives → key results
   const teams = await Team.find({ orgId }).select('_id').lean();
   const teamIds = teams.map((t) => t._id);
@@ -53,7 +56,7 @@ export async function DELETE(
   await Objective.deleteMany({ okrPageId: { $in: pageIds } });
   await OKRPage.deleteMany({ teamId: { $in: teamIds } });
   await Team.deleteMany({ orgId });
-  await Org.findByIdAndDelete(orgId);
+  await org.deleteOne();
 
   return ok({ deleted: true });
 }

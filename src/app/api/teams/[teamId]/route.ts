@@ -17,7 +17,7 @@ export async function GET(
 
   const { teamId } = await params;
   await connectDB();
-  const team = await Team.findById(teamId).populate('subTeams').lean();
+  const team = await Team.findOne({ _id: teamId, tenantId: user.tenantId }).populate('subTeams').lean();
   if (!team) return err('Team not found', 404);
   return ok(team);
 }

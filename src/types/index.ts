@@ -1,6 +1,6 @@
 // ─── Core Enums ─────────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'super_admin' | 'tenant_owner' | 'admin' | 'member';
 export type TeamRole = 'owner' | 'member';
 export type PeriodType = 'annual' | 'quarterly';
 export type Quarter = 'Q1' | 'Q2' | 'Q3' | 'Q4';
@@ -32,10 +32,30 @@ export function periodKey(p: TimePeriod): string {
   return p.type === 'annual' ? `annual-${p.year}` : `${p.quarter!.toLowerCase()}-${p.year}`;
 }
 
+// ─── Tenant ───────────────────────────────────────────────────────────────────
+
+export interface TenantBranding {
+  logoUrl?: string;
+  mission?: string;
+  primaryColor?: string;
+}
+
+export interface ITenant {
+  _id: string;
+  name: string;
+  slug: string;
+  ownerId: string;
+  branding: TenantBranding;
+  guidePage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 export interface IUser {
   _id: string;
+  tenantId: string;
   name: string;
   email: string;
   role: UserRole;
@@ -93,6 +113,11 @@ export interface IKeyResult {
 
 // ─── Objective ────────────────────────────────────────────────────────────────
 
+export interface ScoreSnapshot {
+  date: string;
+  score: number;
+}
+
 export interface IObjective {
   _id: string;
   okrPageId: string;
@@ -101,6 +126,7 @@ export interface IObjective {
   priority?: number; // 1 = highest
   comments?: string;
   score?: number; // computed from KRs (or manual override)
+  scoreHistory: ScoreSnapshot[];
   keyResults: IKeyResult[];
   parentObjectiveId?: string; // maps to annual / company OKR
   sortOrder: number;
@@ -140,6 +166,7 @@ export interface TeamOKRSummary {
 
 export interface AuthPayload {
   userId: string;
+  tenantId: string;
   name: string;
   email: string;
   role: UserRole;

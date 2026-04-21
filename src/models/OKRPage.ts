@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 import type { OKRStatus, PeriodType, Quarter } from '@/types';
 
 export interface OKRPageDocument extends Document {
+  tenantId: mongoose.Types.ObjectId;
   teamId: mongoose.Types.ObjectId;
   period: {
     type: PeriodType;
@@ -16,6 +17,7 @@ export interface OKRPageDocument extends Document {
 
 const OKRPageSchema = new Schema<OKRPageDocument>(
   {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
     teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
     period: {
       type: {

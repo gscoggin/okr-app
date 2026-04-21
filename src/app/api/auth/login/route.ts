@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
 
   const payload = {
     userId: user._id.toString(),
+    tenantId: user.tenantId.toString(),
     name: user.name,
     email: user.email,
     role: user.role,
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
   const res = ok({
     user: {
       _id: user._id.toString(),
+      tenantId: user.tenantId.toString(),
       name: user.name,
       email: user.email,
       role: user.role,

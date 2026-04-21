@@ -74,6 +74,14 @@ export default function AdminPage() {
   const [inlineSaving, setInlineSaving] = useState(false);
   const [inlineError, setInlineError] = useState('');
 
+  // Create user form
+  const [createName, setCreateName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createRole, setCreateRole] = useState<'admin' | 'member'>('member');
+  const [createSaving, setCreateSaving] = useState(false);
+  const [createError, setCreateError] = useState('');
+
   // Danger zone — reset OKR data
   const [resetStep, setResetStep] = useState<'idle' | 'creds' | 'confirm'>('idle');
   const [resetEmail, setResetEmail] = useState('');
@@ -82,9 +90,12 @@ export default function AdminPage() {
   const [resetError, setResetError] = useState('');
   const [resetResult, setResetResult] = useState<{ pages: number; objectives: number; keyResults: number } | null>(null);
 
+  const isAdmin = user ? ['super_admin', 'tenant_owner', 'admin'].includes(user.role) : false;
+  const isTenantOwner = user ? ['super_admin', 'tenant_owner'].includes(user.role) : false;
+
   useEffect(() => {
-    if (user && user.role !== 'admin') router.replace('/');
-  }, [user, router]);
+    if (user && !isAdmin) router.replace('/');
+  }, [user, isAdmin, router]);
 
   const loadArchives = useCallback(async () => {
     const res = await fetch('/api/archives');
@@ -321,6 +332,37 @@ export default function AdminPage() {
     }
   };
 
+  const createUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError('');
+    setCreateSaving(true);
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: createName, email: createEmail, password: createPassword, role: createRole }),
+    });
+    const json = await res.json();
+    if (res.ok) {
+      setUsers((prev) => [...prev, { ...json.data, teamMemberships: [], createdAt: '', updatedAt: '' }]);
+      setCreateName(''); setCreateEmail(''); setCreatePassword(''); setCreateRole('member');
+    } else {
+      setCreateError(json.error ?? 'Failed to create user');
+    }
+    setCreateSaving(false);
+  };
+
+  const changeUserRole = async (userId: string, role: string) => {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      setUsers((prev) => prev.map((u) => u._id === userId ? { ...u, role: json.data.role } : u));
+    }
+  };
+
   // ── Reset OKR data ──────────────────────────────────────────────────────────
 
   const submitReset = async () => {
@@ -366,7 +408,7 @@ export default function AdminPage() {
     else throw new Error('Failed');
   };
 
-  if (!user || user.role !== 'admin') return null;
+  if (!user || !isAdmin) return null;
 
   const teamsInOrg = (orgId: string) => teams.filter((t) => t.orgId === orgId);
   const userById = (id: string) => users.find((u) => u._id === id);
@@ -664,35 +706,100 @@ export default function AdminPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Users</h2>
 
-            <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
-              {users.map((u) => (
-                <li key={u._id} className="flex items-center px-4 py-3 bg-white gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold uppercase shrink-0">
-                    {u.name?.[0] ?? '?'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${u.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {u.role}
-                  </span>
-                  {u._id === user?.userId ? (
-                    <span className="text-xs text-gray-300 w-5" title="You">you</span>
-                  ) : confirmDeleteUser === u._id ? (
-                    <span className="flex items-center gap-2 text-xs">
-                      <span className="text-gray-500">Delete user?</span>
-                      <button onClick={() => deleteUser(u._id)} className="text-red-600 font-medium hover:text-red-800">Yes</button>
-                      <button onClick={() => setConfirmDeleteUser('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
-                    </span>
-                  ) : (
-                    <button onClick={() => setConfirmDeleteUser(u._id)} className="text-gray-300 hover:text-red-400 transition" title="Delete user">
-                      <TrashIcon />
-                    </button>
-                  )}
-                </li>
-              ))}
+            <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden mb-4">
+              {users.map((u) => {
+                const roleBadge: Record<string, string> = {
+                  tenant_owner: 'bg-purple-100 text-purple-700',
+                  admin: 'bg-blue-100 text-blue-700',
+                  member: 'bg-gray-100 text-gray-500',
+                };
+                const isMe = u._id === user?.userId;
+                const canChange = !isMe && !(u.role === 'tenant_owner' && !isTenantOwner);
+                return (
+                  <li key={u._id} className="flex items-center px-4 py-3 bg-white gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold uppercase shrink-0">
+                      {u.name?.[0] ?? '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                    </div>
+                    {canChange ? (
+                      <select
+                        value={u.role}
+                        onChange={(e) => changeUserRole(u._id, e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 shrink-0"
+                      >
+                        <option value="member">member</option>
+                        <option value="admin">admin</option>
+                        {isTenantOwner && <option value="tenant_owner">tenant_owner</option>}
+                      </select>
+                    ) : (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${roleBadge[u.role] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {u.role}
+                      </span>
+                    )}
+                    {isMe ? (
+                      <span className="text-xs text-gray-300 w-6 text-right shrink-0">you</span>
+                    ) : confirmDeleteUser === u._id ? (
+                      <span className="flex items-center gap-2 text-xs shrink-0">
+                        <span className="text-gray-500">Delete?</span>
+                        <button onClick={() => deleteUser(u._id)} className="text-red-600 font-medium hover:text-red-800">Yes</button>
+                        <button onClick={() => setConfirmDeleteUser('')} className="text-gray-400 hover:text-gray-600">No</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteUser(u._id)} className="text-gray-300 hover:text-red-400 transition shrink-0" title="Delete user">
+                        <TrashIcon />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
+
+            {/* Create user form */}
+            <form onSubmit={createUser} className="space-y-3 border border-gray-200 rounded-xl p-4 bg-gray-50">
+              <p className="text-sm font-medium text-gray-700">Add User to Workspace</p>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="Full name"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  required
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={createEmail}
+                  onChange={(e) => setCreateEmail(e.target.value)}
+                  required
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+                <input
+                  type="password"
+                  placeholder="Temporary password (8+ chars)"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+                <select
+                  value={createRole}
+                  onChange={(e) => setCreateRole(e.target.value as 'admin' | 'member')}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="member">Member</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              {createError && <p className="text-sm text-red-500">{createError}</p>}
+              <button type="submit" disabled={createSaving} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
+                {createSaving ? 'Adding…' : 'Add User'}
+              </button>
+            </form>
           </section>
 
           {/* ── Archive Years ─────────────────────────────────────────────────── */}

@@ -1,17 +1,15 @@
-/**
- * Registration endpoint — admin-only in production.
- * In dev, the first user to register is automatically made admin.
- */
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
-import { ok, err } from '@/lib/apiUtils';
+import { ok, err, slugify } from '@/lib/apiUtils';
 import User from '@/models/User';
+import Tenant from '@/models/Tenant';
 
 export async function POST(req: NextRequest) {
-  const { name, email, password } = await req.json();
+  const { name, email, password, companyName } = await req.json();
 
   if (!name || !email || !password) return err('Name, email and password are required');
+  if (!companyName) return err('Company name is required');
   if (password.length < 8) return err('Password must be at least 8 characters');
 
   await connectDB();
@@ -19,14 +17,44 @@ export async function POST(req: NextRequest) {
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) return err('Email already in use', 409);
 
-  const userCount = await User.countDocuments();
-  const role = userCount === 0 ? 'admin' : 'member'; // first user = admin
+  // Create tenant first
+  const baseSlug = slugify(companyName);
+  let slug = baseSlug;
+  let attempt = 1;
+  while (await Tenant.findOne({ slug })) {
+    slug = `${baseSlug}-${++attempt}`;
+  }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await User.create({ name, email, passwordHash, role });
+
+  // Use a placeholder ownerId, then update after user creation
+  const tenant = await Tenant.create({
+    name: companyName,
+    slug,
+    ownerId: new (await import('mongoose')).default.Types.ObjectId(),
+    branding: {},
+  });
+
+  const user = await User.create({
+    tenantId: tenant._id,
+    name,
+    email,
+    passwordHash,
+    role: 'tenant_owner',
+  });
+
+  // Point tenant.ownerId at the real user
+  await Tenant.findByIdAndUpdate(tenant._id, { ownerId: user._id });
 
   return ok(
-    { _id: user._id.toString(), name: user.name, email: user.email, role: user.role },
+    {
+      _id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      tenantId: tenant._id.toString(),
+      tenantName: tenant.name,
+    },
     201
   );
 }

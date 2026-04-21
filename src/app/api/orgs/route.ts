@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (!user) return err('Unauthorized', 401);
 
   await connectDB();
-  const orgs = await Org.find({}).sort({ name: 1 }).lean();
+  const orgs = await Org.find({ tenantId: user.tenantId }).sort({ name: 1 }).lean();
   return ok(orgs);
 }
 
@@ -22,6 +22,6 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
   const slug = slugify(name);
-  const org = await Org.create({ name, slug });
+  const org = await Org.create({ tenantId: user.tenantId, name, slug });
   return ok(org, 201);
 }

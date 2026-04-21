@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
   const orgId = searchParams.get('orgId');
 
   await connectDB();
-  const filter = orgId ? { orgId } : {};
+  const filter: Record<string, unknown> = { tenantId: user.tenantId };
+  if (orgId) filter.orgId = orgId;
   const teams = await Team.find(filter).sort({ name: 1 }).lean();
   return ok(teams);
 }
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!org) return err('Org not found', 404);
 
   const slug = slugify(name);
-  const team = await Team.create({ name, slug, orgId, parentTeamId });
+  const team = await Team.create({ tenantId: user.tenantId, name, slug, orgId, parentTeamId });
 
   // Register team with org
   org.teams.push(team._id);

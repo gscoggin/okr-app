@@ -3,10 +3,12 @@
  * Designed to be replaced/extended with OIDC (Okta, Auth0, etc.)
  * by swapping out verifyToken() and the login route.
  *
- * Roles:
- *   admin       – full access to all orgs, teams, OKRs
- *   member      – read access + edit within their own teams (per teamMemberships)
- *   team_owner  – stored in teamMemberships[].role, grants edit rights for that team
+ * Roles (highest → lowest):
+ *   super_admin   – platform level (internal only, sees all tenants)
+ *   tenant_owner  – created the company workspace; full control + billing/settings
+ *   admin         – tenant-scoped full access (appointed by owner)
+ *   member        – read access + edit within their own teams (per teamMemberships)
+ *   team_owner    – stored in teamMemberships[].role, grants edit rights for that team
  */
 
 import jwt from 'jsonwebtoken';
@@ -51,8 +53,17 @@ export async function getCurrentUser(): Promise<AuthPayload | null> {
 
 // ─── Permission helpers ───────────────────────────────────────────────────────
 
+export function isSuperAdmin(user: AuthPayload): boolean {
+  return user.role === 'super_admin';
+}
+
+/** tenant_owner or admin within their own tenant */
 export function isAdmin(user: AuthPayload): boolean {
-  return user.role === 'admin';
+  return user.role === 'super_admin' || user.role === 'tenant_owner' || user.role === 'admin';
+}
+
+export function isTenantOwner(user: AuthPayload): boolean {
+  return user.role === 'super_admin' || user.role === 'tenant_owner';
 }
 
 export function isTeamOwner(user: AuthPayload, teamId: string): boolean {

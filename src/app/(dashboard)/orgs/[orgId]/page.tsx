@@ -7,8 +7,9 @@ import Org from '@/models/Org';
 import Team from '@/models/Team';
 import OKRPage from '@/models/OKRPage';
 import Objective from '@/models/Objective';
-import { ScoreBadge } from '@/components/ui/ScoreBadge';
+import { RingGauge } from '@/components/ui/RingGauge';
 import { computePageScore, periodLabel } from '@/types';
+import { serializeObjective } from '@/lib/serializeOKR';
 import type { IObjective } from '@/types';
 
 interface Props {
@@ -38,14 +39,14 @@ export default async function OrgPage({ params }: Props) {
   for (const obj of objectives) {
     const key = obj.okrPageId.toString();
     if (!objsByPage[key]) objsByPage[key] = [];
-    objsByPage[key].push({ ...obj, _id: obj._id.toString(), okrPageId: key, keyResults: [], owners: obj.owners ?? [], createdAt: obj.createdAt.toISOString(), updatedAt: obj.updatedAt.toISOString(), sortOrder: obj.sortOrder ?? 0, status: obj.status ?? 'draft', parentObjectiveId: obj.parentObjectiveId?.toString() });
+    objsByPage[key].push(serializeObjective(obj, []));
   }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{org.name}</h1>
-        <p className="text-sm text-gray-500 mt-1">{currentYear} — OKR Overview</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{org.name}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{currentYear} — OKR Overview</p>
       </div>
 
       <div className="space-y-4">
@@ -57,17 +58,17 @@ export default async function OrgPage({ params }: Props) {
           const teamPages = pages.filter((p) => p.teamId.toString() === team._id.toString());
 
           return (
-            <div key={team._id.toString()} className="border border-gray-200 rounded-xl bg-white overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div key={team._id.toString()} className="border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <Link
                   href={`/teams/${team._id}`}
-                  className="font-semibold text-gray-800 hover:text-blue-600 transition"
+                  className="font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition"
                 >
                   {team.name}
                 </Link>
                 <Link
                   href={`/teams/${team._id}`}
-                  className="text-xs text-blue-600 hover:underline"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   View OKRs →
                 </Link>
@@ -76,7 +77,7 @@ export default async function OrgPage({ params }: Props) {
               {teamPages.length === 0 ? (
                 <p className="text-sm text-gray-400 px-5 py-3">No OKR pages for {currentYear}.</p>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {teamPages.map((pg) => {
                     const objs = objsByPage[pg._id.toString()] ?? [];
                     const score = computePageScore(objs);
@@ -84,21 +85,21 @@ export default async function OrgPage({ params }: Props) {
                     const periodSlug =
                       pg.period.type === 'annual'
                         ? `${pg.period.year}`
-                        : `${pg.period.year}-${pg.period.quarter?.toLowerCase()}`;
+                        : `${pg.period.year}/${pg.period.quarter?.toLowerCase()}`;
 
                     return (
                       <Link
                         key={pg._id.toString()}
                         href={`/teams/${team._id}/${periodSlug}`}
-                        className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition text-sm"
+                        className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition text-sm"
                       >
-                        <span className="text-gray-600 w-20">{periodLabel(period)}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pg.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        <span className="text-gray-600 dark:text-gray-400 w-20">{periodLabel(period)}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pg.status === 'published' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'}`}>
                           {pg.status}
                         </span>
-                        <span className="text-gray-500">{objs.length} objective{objs.length !== 1 ? 's' : ''}</span>
+                        <span className="text-gray-500 dark:text-gray-400">{objs.length} objective{objs.length !== 1 ? 's' : ''}</span>
                         <div className="ml-auto">
-                          <ScoreBadge score={score} />
+                          <RingGauge score={score ?? null} size={40} />
                         </div>
                       </Link>
                     );

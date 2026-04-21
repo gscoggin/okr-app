@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { connectDB } from '@/lib/mongodb';
 import Team from '@/models/Team';
@@ -9,15 +9,19 @@ import Objective from '@/models/Objective';
 import KeyResult from '@/models/KeyResult';
 import { getCurrentUser, canEditTeamOKR } from '@/lib/auth';
 import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
+import { PresentationView } from '@/components/presentation/PresentationView';
 import { CreateOKRPageView } from './CreateOKRPageView';
-import type { IOKRPage, IObjective, IKeyResult } from '@/types';
+import { serializeOKRPageWithNested } from '@/lib/serializeOKR';
+import type { IOKRPage } from '@/types';
 
 interface Props {
   params: Promise<{ teamId: string; year: string }>;
+  searchParams: Promise<{ edit?: string }>;
 }
 
-export default async function AnnualOKRPage({ params }: Props) {
+export default async function AnnualOKRPage({ params, searchParams }: Props) {
   const { teamId, year: yearSlug } = await params;
+  const { edit } = await searchParams;
 
   const year = parseInt(yearSlug, 10);
   if (isNaN(year) || yearSlug.length !== 4) notFound();
@@ -29,9 +33,7 @@ export default async function AnnualOKRPage({ params }: Props) {
 
   const user = await getCurrentUser();
   const canEdit = user ? canEditTeamOKR(user, teamId) : false;
-
-  // Members (non-admin, non-owner) go straight to the presentation view
-  if (user && !canEdit) redirect(`/teams/${teamId}/${year}/present`);
+  const editMode = canEdit && edit !== undefined;
 
   const pageDoc = await OKRPage.findOne({
     teamId,
@@ -40,13 +42,13 @@ export default async function AnnualOKRPage({ params }: Props) {
   }).lean();
 
   const breadcrumb = (
-    <div className="border-b border-gray-200 bg-white px-4 sm:px-6 py-3">
+    <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 py-3">
       <nav className="text-sm text-gray-500 flex items-center gap-2">
-        <Link href="/" className="hover:text-gray-700">Company</Link>
+        <Link href="/" className="hover:text-gray-700 dark:hover:text-gray-300">Company</Link>
         <span>/</span>
-        <Link href={`/teams/${teamId}`} className="hover:text-gray-700">{team.name}</Link>
+        <Link href={`/teams/${teamId}`} className="hover:text-gray-700 dark:hover:text-gray-300">{team.name}</Link>
         <span>/</span>
-        <span className="text-gray-800 font-medium">{year}</span>
+        <span className="text-gray-800 dark:text-gray-200 font-medium">{year}</span>
       </nav>
     </div>
   );
@@ -55,12 +57,7 @@ export default async function AnnualOKRPage({ params }: Props) {
     return (
       <div>
         {breadcrumb}
-        <CreateOKRPageView
-          teamId={teamId}
-          year={year}
-          teamName={team.name}
-          canEdit={canEdit}
-        />
+        <CreateOKRPageView teamId={teamId} year={year} teamName={team.name} canEdit={canEdit} />
       </div>
     );
   }
@@ -69,60 +66,29 @@ export default async function AnnualOKRPage({ params }: Props) {
   const objectiveIds = objectives.map((o) => o._id);
   const keyResults = await KeyResult.find({ objectiveId: { $in: objectiveIds } }).sort({ sortOrder: 1 }).lean();
 
-  const krsByObjective: Record<string, IKeyResult[]> = {};
-  for (const kr of keyResults) {
-    const key = kr.objectiveId.toString();
-    if (!krsByObjective[key]) krsByObjective[key] = [];
-    krsByObjective[key].push({
-      _id: kr._id.toString(),
-      objectiveId: key,
-      title: kr.title,
-      owners: kr.owners ?? [],
-      metric: kr.metric,
-      startValue: kr.startValue,
-      targetValue: kr.targetValue,
-      currentValue: kr.currentValue,
-      confidence: kr.confidence,
-      comments: kr.comments,
-      score: kr.score,
-      status: kr.status,
-      sortOrder: kr.sortOrder,
-      createdAt: kr.createdAt.toISOString(),
-      updatedAt: kr.updatedAt.toISOString(),
-    });
-  }
+  const serializedPage: IOKRPage = serializeOKRPageWithNested(pageDoc, objectives, keyResults);
 
-  const serializedObjectives: IObjective[] = objectives.map((o) => ({
-    _id: o._id.toString(),
-    okrPageId: pageDoc._id.toString(),
-    title: o.title,
-    owners: o.owners ?? [],
-    priority: o.priority,
-    comments: o.comments,
-    score: o.score,
-    parentObjectiveId: o.parentObjectiveId?.toString(),
-    sortOrder: o.sortOrder ?? 0,
-    status: o.status ?? 'draft',
-    keyResults: krsByObjective[o._id.toString()] ?? [],
-    createdAt: o.createdAt.toISOString(),
-    updatedAt: o.updatedAt.toISOString(),
-  }));
-
-  const serializedPage: IOKRPage = {
-    _id: pageDoc._id.toString(),
-    teamId,
-    period: { type: 'annual', year },
-    status: pageDoc.status,
-    objectives: serializedObjectives,
-    parentOKRPageId: pageDoc.parentOKRPageId?.toString(),
-    createdAt: pageDoc.createdAt.toISOString(),
-    updatedAt: pageDoc.updatedAt.toISOString(),
-  };
+  const baseHref = `/teams/${teamId}/${year}`;
 
   return (
     <div>
       {breadcrumb}
-      <OKRPageEditor initialPage={serializedPage} canEdit={canEdit} teamId={teamId} teamIconUrl={team.iconUrl ?? undefined} />
+      {editMode ? (
+        <OKRPageEditor
+          initialPage={serializedPage}
+          canEdit
+          teamId={teamId}
+          teamIconUrl={team.iconUrl ?? undefined}
+          doneHref={baseHref}
+        />
+      ) : (
+        <PresentationView
+          page={serializedPage}
+          teamName={team.name}
+          teamIconUrl={team.iconUrl ?? undefined}
+          editHref={canEdit ? `${baseHref}?edit` : undefined}
+        />
+      )}
     </div>
   );
 }

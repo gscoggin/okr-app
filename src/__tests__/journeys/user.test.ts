@@ -2,22 +2,23 @@
  * User (member) journeys
  *
  * Covered:
- *   1.  Register a new user
- *   2.  First registered user automatically becomes admin
+ *   1.  Register a new workspace (tenant + tenant_owner)
+ *   2.  Registration requires a company name
  *   3.  Duplicate email registration is rejected
  *   4.  Login with valid credentials → token cookie set
  *   5.  Login with wrong password is rejected
- *   6.  Authenticated user can list orgs
+ *   6.  Authenticated user can list orgs within their tenant
  *   7.  Unauthenticated request returns 401
  *   8.  Member cannot access admin-only routes (org creation)
- *   9.  Member can view their team's OKR page
- *   10. Member cannot view an OKR page they have no access to
+ *   9.  Member can view an OKR page in their tenant
+ *   10. Member cannot view an OKR page from a different tenant
  *   11. Member of a team cannot edit that team's OKR page (read-only role)
  *   12. Me endpoint returns the authenticated user's profile
  */
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
 import { req, json } from '../helpers/request';
 import {
+  createTenant,
   createUser,
   createOrg,
   createTeam,
@@ -26,7 +27,6 @@ import {
   createObjective,
 } from '../helpers/fixtures';
 
-// Route handlers
 import { POST as register } from '@/app/api/auth/register/route';
 import { POST as login } from '@/app/api/auth/login/route';
 import { GET as getMe } from '@/app/api/auth/me/route';
@@ -38,53 +38,41 @@ beforeAll(() => connectTestDB(), 30000);
 afterAll(() => disconnectTestDB());
 beforeEach(() => clearTestDB());
 
-// ── 1. Register ───────────────────────────────────────────────────────────────
+// ── 1. Register a new workspace ───────────────────────────────────────────────
 
-it('registers a new user', async () => {
+it('registers a new workspace and returns a tenant_owner user', async () => {
   const res = await register(
     req('POST', '/api/auth/register', {
-      body: { name: 'Alice Chen', email: 'alice@test.com', password: 'password123' },
+      body: { name: 'Alice Chen', email: 'alice@test.com', password: 'password123', companyName: 'Acme Corp' },
     })
   );
   expect(res.status).toBe(201);
   const { data } = await json(res);
-  expect(data).toMatchObject({ name: 'Alice Chen', email: 'alice@test.com' });
+  expect(data).toMatchObject({ name: 'Alice Chen', email: 'alice@test.com', role: 'tenant_owner' });
+  expect(data.tenantId).toBeTruthy();
+  expect(data.tenantName).toBe('Acme Corp');
 });
 
-// ── 2. First user becomes admin ───────────────────────────────────────────────
+// ── 2. Registration requires company name ─────────────────────────────────────
 
-it('first registered user automatically becomes admin', async () => {
+it('registration is rejected without a company name', async () => {
   const res = await register(
     req('POST', '/api/auth/register', {
-      body: { name: 'First', email: 'first@test.com', password: 'password123' },
+      body: { name: 'Bob', email: 'bob@test.com', password: 'password123' },
     })
   );
-  const { data } = await json(res);
-  expect(data.role).toBe('admin');
-
-  // Second user is a regular member
-  const res2 = await register(
-    req('POST', '/api/auth/register', {
-      body: { name: 'Second', email: 'second@test.com', password: 'password123' },
-    })
-  );
-  const { data: data2 } = await json(res2);
-  expect(data2.role).toBe('member');
+  expect(res.status).toBe(400);
 });
 
 // ── 3. Duplicate email rejected ───────────────────────────────────────────────
 
 it('duplicate email registration is rejected', async () => {
-  await register(
-    req('POST', '/api/auth/register', {
-      body: { name: 'Alice', email: 'alice@test.com', password: 'password123' },
-    })
-  );
-  const res = await register(
-    req('POST', '/api/auth/register', {
-      body: { name: 'Alice Again', email: 'alice@test.com', password: 'password456' },
-    })
-  );
+  await register(req('POST', '/api/auth/register', {
+    body: { name: 'Alice', email: 'alice@test.com', password: 'password123', companyName: 'Acme' },
+  }));
+  const res = await register(req('POST', '/api/auth/register', {
+    body: { name: 'Alice Again', email: 'alice@test.com', password: 'password456', companyName: 'Other Co' },
+  }));
   expect(res.status).toBe(409);
 });
 
@@ -94,17 +82,12 @@ it('login with valid credentials sets an auth cookie', async () => {
   await createUser({ email: 'bob@test.com', password: 'mypassword', role: 'member' });
 
   const res = await login(
-    req('POST', '/api/auth/login', {
-      body: { email: 'bob@test.com', password: 'mypassword' },
-    })
+    req('POST', '/api/auth/login', { body: { email: 'bob@test.com', password: 'mypassword' } })
   );
   expect(res.status).toBe(200);
   const { data } = await json(res);
   expect(data.user.email).toBe('bob@test.com');
-
-  // Cookie header should be set
-  const setCookie = res.headers.get('set-cookie');
-  expect(setCookie).toMatch(/okr_token=/);
+  expect(res.headers.get('set-cookie')).toMatch(/okr_token=/);
 });
 
 // ── 5. Login with wrong password rejected ────────────────────────────────────
@@ -113,26 +96,29 @@ it('login with wrong password returns 401', async () => {
   await createUser({ email: 'carol@test.com', password: 'correctPass' });
 
   const res = await login(
-    req('POST', '/api/auth/login', {
-      body: { email: 'carol@test.com', password: 'wrongPass' },
-    })
+    req('POST', '/api/auth/login', { body: { email: 'carol@test.com', password: 'wrongPass' } })
   );
   expect(res.status).toBe(401);
-  const { error } = await json(res);
-  expect(error).toMatch(/invalid credentials/i);
+  expect((await json(res)).error).toMatch(/invalid credentials/i);
 });
 
-// ── 6. Authenticated user lists orgs ─────────────────────────────────────────
+// ── 6. Authenticated user lists orgs within their tenant ──────────────────────
 
-it('authenticated user can list orgs', async () => {
-  const member = await createUser({ role: 'member' });
-  await createOrg('Acme');
-  await createOrg('Globex');
+it('authenticated user only sees orgs from their own tenant', async () => {
+  const { tenantId } = await createTenant();
+  const member = await createUser({ role: 'member', tenantId });
+  await createOrg('Acme', tenantId);
+  await createOrg('Globex', tenantId);
+
+  // Create an org in a different tenant — should not appear
+  const { tenantId: otherTenantId } = await createTenant('Other Co');
+  await createOrg('Invisible Org', otherTenantId);
 
   const res = await getOrgs(req('GET', '/api/orgs', { token: member.token }));
   expect(res.status).toBe(200);
   const { data } = await json(res);
   expect(data).toHaveLength(2);
+  expect(data.map((o: { name: string }) => o.name)).toEqual(expect.arrayContaining(['Acme', 'Globex']));
 });
 
 // ── 7. Unauthenticated request → 401 ─────────────────────────────────────────
@@ -146,23 +132,21 @@ it('unauthenticated request to protected route returns 401', async () => {
 
 it('member cannot access admin-only org creation route', async () => {
   const member = await createUser({ role: 'member' });
-
-  const res = await postOrg(
-    req('POST', '/api/orgs', { body: { name: 'Unauthorized' }, token: member.token })
-  );
+  const res = await postOrg(req('POST', '/api/orgs', { body: { name: 'Unauthorized' }, token: member.token }));
   expect(res.status).toBe(403);
 });
 
-// ── 9. Member views their team's OKR page ────────────────────────────────────
+// ── 9. Member can view an OKR page in their tenant ───────────────────────────
 
-it('member can view their team\'s OKR page', async () => {
-  const member = await createUser({ role: 'member' });
-  const { orgId } = await createOrg();
-  const { teamId } = await createTeam(orgId);
+it('member can view an OKR page within their tenant', async () => {
+  const { tenantId } = await createTenant();
+  const member = await createUser({ role: 'member', tenantId });
+  const { orgId } = await createOrg('Org', tenantId);
+  const { teamId } = await createTeam(orgId, 'Team', tenantId);
   await addTeamMember(teamId, member.userId, 'member');
   const memberToken = await member.refreshToken();
 
-  const { pageId } = await createOKRPage(teamId, { year: 2025 });
+  const { pageId } = await createOKRPage(teamId, { year: 2025, tenantId });
   await createObjective(pageId, 'Q1 Goal');
 
   const res = await getPage(
@@ -171,58 +155,53 @@ it('member can view their team\'s OKR page', async () => {
   );
   expect(res.status).toBe(200);
   const { data } = await json(res);
-  expect(data.objectives).toHaveLength(1);
   expect(data.objectives[0].title).toBe('Q1 Goal');
 });
 
-// ── 10. Member cannot view pages from a team they don't belong to ─────────────
+// ── 10. Member cannot view a page from a different tenant ─────────────────────
 
-it('member can still view OKR pages they are not a member of (pages are read-accessible)', async () => {
-  // Pages are readable by any authenticated user per current GET handler
-  const outsider = await createUser({ role: 'member' });
-  const { orgId } = await createOrg();
-  const { teamId } = await createTeam(orgId);
-  const { pageId } = await createOKRPage(teamId);
+it('member cannot view an OKR page from a different tenant', async () => {
+  // Tenant A has a page
+  const { tenantId: tenantA } = await createTenant('Tenant A');
+  const { orgId } = await createOrg('Org A', tenantA);
+  const { teamId } = await createTeam(orgId, 'Team A', tenantA);
+  const { pageId } = await createOKRPage(teamId, { tenantId: tenantA });
+
+  // Tenant B user tries to access it
+  const outsider = await createUser({ role: 'member' }); // auto-creates own tenant
 
   const res = await getPage(
     req('GET', `/api/okr-pages/${pageId}`, { token: outsider.token }),
     { params: Promise.resolve({ pageId }) }
   );
-  // GET is open to any authenticated user
-  expect(res.status).toBe(200);
+  expect(res.status).toBe(404);
 });
 
 // ── 11. Member cannot edit their team's OKR page ─────────────────────────────
 
-it('team member without owner role cannot edit the OKR page', async () => {
-  const member = await createUser({ role: 'member' });
-  const { orgId } = await createOrg();
-  const { teamId } = await createTeam(orgId);
+it('team member without owner role cannot add objectives', async () => {
+  const { tenantId } = await createTenant();
+  const member = await createUser({ role: 'member', tenantId });
+  const { orgId } = await createOrg('Org', tenantId);
+  const { teamId } = await createTeam(orgId, 'Team', tenantId);
   await addTeamMember(teamId, member.userId, 'member');
   const memberToken = await member.refreshToken();
 
-  const { pageId } = await createOKRPage(teamId);
-  const { objectiveId } = await createObjective(pageId);
+  const { pageId } = await createOKRPage(teamId, { tenantId });
 
-  // Cannot add objectives
-  const addRes = await postObjective(
+  const res = await postObjective(
     req('POST', '/api/objectives', {
       body: { okrPageId: pageId, title: 'Sneaky objective' },
       token: memberToken,
     })
   );
-  expect(addRes.status).toBe(403);
+  expect(res.status).toBe(403);
 });
 
 // ── 12. Me endpoint ───────────────────────────────────────────────────────────
 
 it('me endpoint returns the authenticated user profile', async () => {
-  const user = await createUser({
-    name: 'Dana Park',
-    email: 'dana@test.com',
-    role: 'member',
-  });
-
+  const user = await createUser({ name: 'Dana Park', email: 'dana@test.com', role: 'member' });
   const res = await getMe(req('GET', '/api/auth/me', { token: user.token }));
   expect(res.status).toBe(200);
   const { data } = await json(res);

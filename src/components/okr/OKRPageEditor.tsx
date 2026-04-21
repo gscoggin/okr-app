@@ -6,9 +6,10 @@ import Link from 'next/link';
 import type { IOKRPage, IObjective, IKeyResult, OKRStatus } from '@/types';
 import { computePageScore } from '@/types';
 import { ObjectiveCard } from './ObjectiveCard';
-import { ScoreBadge } from '@/components/ui/ScoreBadge';
+import { RingGauge } from '@/components/ui/RingGauge';
 import { IconUpload } from '@/components/ui/IconUpload';
 import { PeriodNav } from '@/components/nav/PeriodNav';
+import { computeTrackingTo } from '@/lib/trackingTo';
 
 const AUTOSAVE_INTERVAL_MS = 3000;
 const DRAFT_LOCALSTORAGE_KEY = (pageId: string) => `okr_draft_${pageId}`;
@@ -18,9 +19,10 @@ interface OKRPageEditorProps {
   canEdit: boolean;
   teamId: string;
   teamIconUrl?: string;
+  doneHref?: string;
 }
 
-export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initialTeamIconUrl }: OKRPageEditorProps) {
+export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initialTeamIconUrl, doneHref }: OKRPageEditorProps) {
   const [teamIconUrl, setTeamIconUrl] = useState<string | undefined>(initialTeamIconUrl);
   const router = useRouter();
   const [page, setPage] = useState<IOKRPage>(() => {
@@ -251,6 +253,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
   };
 
   const pageScore = computePageScore(page.objectives);
+  const pageTrackingTo = computeTrackingTo(pageScore, page.period);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -272,7 +275,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
           <PeriodNav teamId={teamId} current={page.period} />
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900">OKRs</h1>
-            <ScoreBadge score={pageScore} />
+            <RingGauge score={pageScore ?? null} trackingTo={pageTrackingTo} size={48} />
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                 page.status === 'published'
@@ -313,17 +316,14 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
         </div>
 
         <div className="flex items-center gap-3 text-sm flex-wrap justify-end">
-          {/* Present button — visible to all roles */}
-          <Link
-            href={
-              page.period.type === 'annual'
-                ? `/teams/${teamId}/${page.period.year}/present`
-                : `/teams/${teamId}/${page.period.year}/${page.period.quarter!.toLowerCase()}/present`
-            }
-            className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
-          >
-            Present
-          </Link>
+          {doneHref && (
+            <Link
+              href={doneHref}
+              className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+            >
+              ← Done editing
+            </Link>
+          )}
 
           {/* Autosave indicator */}
           <span className="text-xs text-gray-400">
@@ -374,6 +374,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
             key={obj._id}
             objective={obj}
             canEdit={canEdit && page.status === 'draft'}
+            trackingTo={computeTrackingTo(obj.score, page.period)}
             onObjectiveChange={(updated) => updateObjective(obj._id, updated)}
             onObjectiveDelete={() => deleteObjective(obj._id)}
             onKRAdd={() => addKR(obj._id)}

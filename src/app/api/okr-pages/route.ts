@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get('type') as PeriodType | null;
 
   await connectDB();
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = { tenantId: user.tenantId };
   if (teamId) filter.teamId = teamId;
   if (year) filter['period.year'] = parseInt(year);
   if (type) filter['period.type'] = type;
@@ -47,12 +47,14 @@ export async function POST(req: NextRequest) {
   let resolvedParentId: string | undefined;
   if (periodType === 'quarterly') {
     let annualPage = await OKRPage.findOne({
+      tenantId: user.tenantId,
       teamId,
       'period.type': 'annual',
       'period.year': year,
     });
     if (!annualPage) {
       annualPage = await OKRPage.create({
+        tenantId: user.tenantId,
         teamId,
         period: { type: 'annual' as PeriodType, year },
       });
@@ -61,6 +63,7 @@ export async function POST(req: NextRequest) {
   }
 
   const page = await OKRPage.create({
+    tenantId: user.tenantId,
     teamId,
     period: { type: periodType as PeriodType, year, quarter: quarter as Quarter | undefined },
     parentOKRPageId: resolvedParentId,

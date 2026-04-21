@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 import type { TeamRole } from '@/types';
 
 export interface TeamDocument extends Document {
+  tenantId: mongoose.Types.ObjectId;
   name: string;
   slug: string;
   orgId: mongoose.Types.ObjectId;
@@ -15,6 +16,7 @@ export interface TeamDocument extends Document {
 
 const TeamSchema = new Schema<TeamDocument>(
   {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, lowercase: true, trim: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Org', required: true },

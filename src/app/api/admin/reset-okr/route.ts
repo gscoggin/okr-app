@@ -28,14 +28,16 @@ export async function POST(req: NextRequest) {
     return err('Credentials do not match your account', 401);
   }
 
-  // Delete all OKR data
-  const objectives = await Objective.find({}).select('_id').lean();
+  // Delete all OKR data scoped to this tenant
+  const pages = await OKRPage.find({ tenantId: user.tenantId }).select('_id').lean();
+  const pageIds = pages.map((p) => p._id);
+  const objectives = await Objective.find({ okrPageId: { $in: pageIds } }).select('_id').lean();
   const objectiveIds = objectives.map((o) => o._id);
 
   const [krResult, objResult, pageResult] = await Promise.all([
     KeyResult.deleteMany({ objectiveId: { $in: objectiveIds } }),
-    Objective.deleteMany({}),
-    OKRPage.deleteMany({}),
+    Objective.deleteMany({ okrPageId: { $in: pageIds } }),
+    OKRPage.deleteMany({ tenantId: user.tenantId }),
   ]);
 
   return ok({

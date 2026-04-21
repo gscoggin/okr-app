@@ -16,6 +16,8 @@ async function authorizeObjective(
   if (!objective) return null;
   const page = await OKRPage.findById(objective.okrPageId);
   if (!page) return null;
+  // Tenant isolation: users can only act on objectives in their own tenant
+  if (page.tenantId?.toString() !== user.tenantId) return null;
   if (!isAdmin(user) && !isTeamOwner(user, page.teamId.toString())) return null;
   return { objective, page };
 }
@@ -52,7 +54,21 @@ export async function PATCH(
   const body = await req.json();
   delete body.okrPageId; // immutable
 
+  const prevScore = ctx.objective.score;
   Object.assign(ctx.objective, body);
+
+  // Snapshot score when it changes (one entry per day — replace same-day entry)
+  const newScore = ctx.objective.score;
+  if (newScore != null && newScore !== prevScore) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const history = ctx.objective.scoreHistory.filter(
+      (s: { date: Date }) => s.date.getTime() !== today.getTime()
+    );
+    history.push({ date: today, score: newScore });
+    ctx.objective.scoreHistory = history;
+  }
+
   await ctx.objective.save();
   return ok(ctx.objective);
 }

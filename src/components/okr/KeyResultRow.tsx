@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import type { IKeyResult, ConfidenceLevel } from '@/types';
-import { ScoreBadge, ConfidenceBadge } from '@/components/ui/ScoreBadge';
+import { ConfidenceBadge } from '@/components/ui/ScoreBadge';
+import { RingGauge } from '@/components/ui/RingGauge';
 import { OwnerPicker } from '@/components/ui/OwnerPicker';
 
 interface KeyResultRowProps {
@@ -10,6 +11,14 @@ interface KeyResultRowProps {
   canEdit: boolean;
   onChange: (updated: Partial<IKeyResult>) => void;
   onDelete: () => void;
+}
+
+function computeKRScore(kr: IKeyResult): number | undefined {
+  const { startValue, targetValue, currentValue } = kr;
+  if (startValue == null || targetValue == null || currentValue == null) return undefined;
+  const range = targetValue - startValue;
+  if (range === 0) return undefined;
+  return Math.max(0, Math.min(1, (currentValue - startValue) / range));
 }
 
 export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowProps) {
@@ -51,7 +60,7 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
 
         <div className="flex items-center gap-2 shrink-0">
           {!expanded && <ConfidenceBadge level={kr.confidence} />}
-          {!expanded && <ScoreBadge score={kr.score} />}
+          {!expanded && <RingGauge score={kr.score ?? null} size={32} />}
           {canEdit && (
             <button
               onClick={onDelete}
@@ -118,9 +127,12 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
                 <input
                   type="number"
                   value={kr[field] ?? ''}
-                  onChange={(e) =>
-                    onChange({ [field]: e.target.value === '' ? undefined : parseFloat(e.target.value) })
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                    const updated = { ...kr, [field]: val };
+                    const score = computeKRScore(updated);
+                    onChange({ [field]: val, ...(score !== undefined ? { score } : {}) });
+                  }}
                   placeholder="0"
                   className="w-full text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                 />
@@ -151,24 +163,12 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
             )}
           </div>
 
-          {/* Score */}
+          {/* Score — auto-computed from values */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Score (0–1)</label>
-            {canEdit ? (
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={kr.score ?? ''}
-                onChange={(e) =>
-                  onChange({ score: e.target.value === '' ? undefined : parseFloat(e.target.value) })
-                }
-                placeholder="0.00"
-                className="w-full text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-              />
-            ) : (
-              <ScoreBadge score={kr.score} />
+            <label className="block text-xs font-medium text-gray-500 mb-1">Score</label>
+            <RingGauge score={kr.score ?? null} size={48} />
+            {canEdit && kr.score == null && (
+              <p className="text-xs text-gray-400 mt-1">Set start, target &amp; current to compute</p>
             )}
           </div>
 
