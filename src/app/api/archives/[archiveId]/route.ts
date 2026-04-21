@@ -37,10 +37,11 @@ export async function DELETE(
   const data = await decompress(archive.compressedData) as Record<string, unknown>;
 
   // Verify the decompressed data's tenantId matches the requester's tenant
+  const requesterTenantId = user.tenantId;
   function assertTenant(obj: Record<string, unknown> | null | undefined) {
     if (!obj) return;
     const tid = obj.tenantId?.toString();
-    if (tid && tid !== user.tenantId) throw new Error('Tenant mismatch in archive data');
+    if (tid && tid !== requesterTenantId) throw new Error('Tenant mismatch in archive data');
   }
 
   try {
