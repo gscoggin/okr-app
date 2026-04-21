@@ -40,14 +40,18 @@ export async function GET(req: NextRequest) {
   const user = requireAuth(req);
   if (!user) return err('Unauthorized', 401);
 
-  const q = new URL(req.url).searchParams.get('q')?.trim() ?? '';
-  if (!q) return ok([]);
+  const raw = new URL(req.url).searchParams.get('q')?.trim() ?? '';
+  if (!raw) return ok([]);
+  if (raw.length > 100) return err('Query too long', 400);
+
+  // Escape special regex chars to prevent ReDoS
+  const q = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   const tenantId = user.tenantId;
   await connectDB();
 
   const nameRegex = { $regex: q, $options: 'i' };
-  const { year, quarter, isPurelyPeriod } = parsePeriod(q);
+  const { year, quarter, isPurelyPeriod } = parsePeriod(raw);
   const hasPeriod = year !== null || quarter !== null;
 
   // Run all applicable searches in parallel

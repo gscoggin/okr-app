@@ -25,7 +25,9 @@ export async function POST(
     User.findById(userId),
   ]);
   if (!team) return err('Team not found', 404);
+  if (team.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
   if (!targetUser) return err('User not found', 404);
+  if (targetUser.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
 
   // Update Team.members
   const existingMember = team.members.find((m: { userId: { toString(): string }; role: string }) => m.userId.toString() === userId);
@@ -68,7 +70,9 @@ export async function DELETE(
     User.findById(userId),
   ]);
   if (!team) return err('Team not found', 404);
+  if (team.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
   if (!targetUser) return err('User not found', 404);
+  if (targetUser.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
 
   team.members = team.members.filter((m: { userId: { toString(): string } }) => m.userId.toString() !== userId);
   await team.save();

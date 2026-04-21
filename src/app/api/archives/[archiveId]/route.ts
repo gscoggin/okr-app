@@ -24,6 +24,7 @@ export async function DELETE(
 
   const archive = await Archive.findById(archiveId);
   if (!archive) return err('Archive not found', 404);
+  if (archive.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
 
   // Year archives older than the window cannot be restored
   if (archive.type === 'year' && archive.metadata?.year) {
@@ -35,6 +36,14 @@ export async function DELETE(
 
   const data = await decompress(archive.compressedData) as Record<string, unknown>;
 
+  // Verify the decompressed data's tenantId matches the requester's tenant
+  function assertTenant(obj: Record<string, unknown> | null | undefined) {
+    if (!obj) return;
+    const tid = obj.tenantId?.toString();
+    if (tid && tid !== user.tenantId) throw new Error('Tenant mismatch in archive data');
+  }
+
+  try {
   // ── Restore Team ────────────────────────────────────────────────────────────
   if (archive.type === 'team') {
     const { team, pages, objectives, keyResults } = data as {
@@ -43,6 +52,9 @@ export async function DELETE(
       objectives: Record<string, unknown>[];
       keyResults: Record<string, unknown>[];
     };
+
+    assertTenant(team);
+    pages?.forEach(assertTenant);
 
     if (team) {
       await Team.create([team]);
@@ -67,6 +79,9 @@ export async function DELETE(
       }>;
     };
 
+    assertTenant(org);
+    teams?.forEach((td) => { assertTenant(td.team); td.pages?.forEach(assertTenant); });
+
     if (org) await Org.create([org]);
     for (const td of teams ?? []) {
       if (td.team) await Team.create([td.team]);
@@ -76,7 +91,7 @@ export async function DELETE(
     }
   }
 
-  // ── Restore Year ────────────────────────────────────────────────────────────
+  // ── Restore Year ─────────────────────────────────────────────────────────
   if (archive.type === 'year') {
     const { pages, objectives, keyResults } = data as {
       year: number;
@@ -85,9 +100,18 @@ export async function DELETE(
       keyResults: Record<string, unknown>[];
     };
 
+    pages?.forEach(assertTenant);
+
     if (pages?.length) await OKRPage.insertMany(pages);
     if (objectives?.length) await Objective.insertMany(objectives);
     if (keyResults?.length) await KeyResult.insertMany(keyResults);
+  }
+
+  } catch (e) {
+    if (e instanceof Error && e.message === 'Tenant mismatch in archive data') {
+      return err('Forbidden', 403);
+    }
+    throw e;
   }
 
   await Archive.findByIdAndDelete(archiveId);

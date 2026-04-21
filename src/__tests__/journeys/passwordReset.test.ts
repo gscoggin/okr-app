@@ -11,6 +11,7 @@
  *   7. Password shorter than 8 characters is rejected
  *   8. Missing token or password returns error
  *   9. Token is cleared after successful reset (cannot reuse)
+ *  10. Rate limiter blocks after 3 requests for the same email
  */
 
 // Mock email so tests never hit the Resend API
@@ -200,4 +201,23 @@ it('a reset token cannot be reused after a successful reset', async () => {
   const user = await User.findOne({ email: 'frank@test.com' }).lean();
   expect(user!.resetToken).toBeUndefined();
   expect(user!.resetTokenExpiry).toBeUndefined();
+});
+
+// ── 10. Rate limiting ─────────────────────────────────────────────────────────
+
+it('rate limiter blocks forgot-password after 3 requests for the same email', async () => {
+  // Use a unique email so this test's rate-limit state is isolated
+  const email = `ratelimit-${Date.now()}@test.com`;
+
+  for (let i = 0; i < 3; i++) {
+    const res = await forgotPassword(
+      req('POST', '/api/auth/forgot-password', { body: { email } })
+    );
+    expect(res.status).toBe(200);
+  }
+
+  const res = await forgotPassword(
+    req('POST', '/api/auth/forgot-password', { body: { email } })
+  );
+  expect(res.status).toBe(429);
 });

@@ -1,26 +1,11 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { requireAuth, ok, err } from '@/lib/apiUtils';
-import { isAdmin, isTeamOwner } from '@/lib/auth';
 import Objective from '@/models/Objective';
 import KeyResult from '@/models/KeyResult';
 import OKRPage from '@/models/OKRPage';
 import { computeObjectiveScore } from '@/types';
-
-async function authorizeObjective(
-  user: ReturnType<typeof requireAuth>,
-  objectiveId: string
-) {
-  if (!user) return null;
-  const objective = await Objective.findById(objectiveId);
-  if (!objective) return null;
-  const page = await OKRPage.findById(objective.okrPageId);
-  if (!page) return null;
-  // Tenant isolation: users can only act on objectives in their own tenant
-  if (page.tenantId?.toString() !== user.tenantId) return null;
-  if (!isAdmin(user) && !isTeamOwner(user, page.teamId.toString())) return null;
-  return { objective, page };
-}
+import { authorizeObjective } from '@/lib/authorization';
 
 export async function GET(
   req: NextRequest,

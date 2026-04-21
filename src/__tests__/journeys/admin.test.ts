@@ -268,3 +268,28 @@ it('unauthenticated request to admin route returns 403', async () => {
   const res = await postOrg(req('POST', '/api/orgs', { body: { name: 'No Token' } }));
   expect(res.status).toBe(403);
 });
+
+// ── Cross-tenant archive isolation ────────────────────────────────────────────
+
+it('admin cannot restore an archive belonging to another tenant', async () => {
+  // Tenant A archives a team
+  const { tenantId: tenantA, admin: adminA } = await adminSetup();
+  const { orgId } = await createOrg('Org A', tenantA);
+  const { teamId } = await createTeam(orgId, 'Team A', tenantA);
+  await createOKRPage(teamId, { tenantId: tenantA });
+
+  await postArchive(
+    req('POST', '/api/archives', { body: { type: 'team', targetId: teamId }, token: adminA.token })
+  );
+  const { data: archives } = await json(await getArchives(req('GET', '/api/archives', { token: adminA.token })));
+  expect(archives).toHaveLength(1);
+  const archiveId = archives[0]._id;
+
+  // Tenant B admin tries to restore tenant A's archive
+  const { admin: adminB } = await adminSetup();
+  const restoreRes = await unarchive(
+    req('DELETE', `/api/archives/${archiveId}`, { token: adminB.token }),
+    { params: Promise.resolve({ archiveId }) }
+  );
+  expect(restoreRes.status).toBe(403);
+});

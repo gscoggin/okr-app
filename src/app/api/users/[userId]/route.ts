@@ -1,11 +1,9 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { requireAuth, ok, err } from '@/lib/apiUtils';
-import { isAdmin } from '@/lib/auth';
+import { isAdmin, isTenantOwner } from '@/lib/auth';
 import User from '@/models/User';
 import Team from '@/models/Team';
-
-import { isTenantOwner } from '@/lib/auth';
 
 export async function PATCH(
   req: NextRequest,
