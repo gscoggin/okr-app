@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ companyName: '', name: '', email: '', password: '' });
+  const [form, setForm] = useState({ companyName: '', name: '', email: '', password: '', inviteCode: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -74,6 +74,21 @@ export default function RegisterPage() {
                 />
               </div>
             ))}
+          </div>
+
+          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
+            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Invite code
+            </label>
+            <input
+              id="inviteCode"
+              type="text"
+              required
+              value={form.inviteCode}
+              onChange={set('inviteCode')}
+              placeholder="Enter your invite code"
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           {error && (

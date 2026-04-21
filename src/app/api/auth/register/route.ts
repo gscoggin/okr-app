@@ -6,7 +6,15 @@ import User from '@/models/User';
 import Tenant from '@/models/Tenant';
 
 export async function POST(req: NextRequest) {
-  const { name, email, password, companyName } = await req.json();
+  const { name, email, password, companyName, inviteCode } = await req.json();
+
+  // If REGISTRATION_CODE is set, enforce it
+  const requiredCode = process.env.REGISTRATION_CODE;
+  if (requiredCode) {
+    if (!inviteCode || inviteCode.trim() !== requiredCode.trim()) {
+      return err('Invalid invite code', 403);
+    }
+  }
 
   if (!name || !email || !password) return err('Name, email and password are required');
   if (!companyName) return err('Company name is required');
