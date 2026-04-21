@@ -165,11 +165,11 @@ export async function createOKRPage(
   return { pageId: page._id.toString(), tenantId: tid };
 }
 
-export async function createObjective(pageId: string, title = 'Test Objective') {
+export async function createObjective(pageId: string, title = 'Test Objective', owners: object[] = []) {
   const obj = await Objective.create({
     okrPageId: new mongoose.Types.ObjectId(pageId),
     title,
-    owners: [],
+    owners,
     sortOrder: 0,
   });
   return { objectiveId: obj._id.toString() };

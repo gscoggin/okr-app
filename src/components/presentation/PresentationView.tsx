@@ -18,21 +18,21 @@ function ScoreChip({ score }: { score: number | undefined }) {
 
 function KRRow({ kr }: { kr: IKeyResult }) {
   return (
-    <div className="py-4 px-5 border-b border-gray-100 last:border-0">
+    <div className="py-4 px-5 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <div className="flex items-start justify-between gap-4">
-        <p className="text-sm font-medium text-gray-800 leading-snug flex-1">{kr.title}</p>
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug flex-1">{kr.title}</p>
         <RingGauge score={kr.score ?? null} size={40} />
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
+      <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
         {kr.metric && (
           <span>
-            <span className="font-medium text-gray-600">Metric:</span> {kr.metric}
+            <span className="font-medium text-gray-600 dark:text-gray-300">Metric:</span> {kr.metric}
           </span>
         )}
         {kr.currentValue !== undefined && kr.targetValue !== undefined && (
           <span>
-            <span className="font-medium text-gray-600">Progress:</span>{' '}
+            <span className="font-medium text-gray-600 dark:text-gray-300">Progress:</span>{' '}
             {kr.currentValue} → {kr.targetValue}
           </span>
         )}
@@ -43,9 +43,9 @@ function KRRow({ kr }: { kr: IKeyResult }) {
           {kr.owners.map((o, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium"
+              className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full font-medium"
             >
-              <span className="w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center text-[10px] font-bold">
+              <span className="w-4 h-4 rounded-full bg-blue-200 dark:bg-blue-700 flex items-center justify-center text-[10px] font-bold">
                 {o.displayName.charAt(0).toUpperCase()}
               </span>
               {o.displayName}
@@ -55,7 +55,7 @@ function KRRow({ kr }: { kr: IKeyResult }) {
       )}
 
       {kr.comments && (
-        <p className="mt-2 text-xs text-gray-500 italic leading-relaxed">{kr.comments}</p>
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed">{kr.comments}</p>
       )}
     </div>
   );
@@ -65,20 +65,20 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
       {/* Objective header */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50 transition"
+        className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
       >
         <span
-          className={`shrink-0 text-gray-400 transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`}
+          className={`shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`}
           aria-hidden
         >
           ▾
         </span>
 
-        <span className="flex-1 text-base font-semibold text-gray-900 leading-snug">
+        <span className="flex-1 text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">
           {objective.title}
         </span>
 
@@ -91,9 +91,9 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
           {objective.owners.map((o, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium"
+              className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full font-medium"
             >
-              <span className="w-4 h-4 rounded-full bg-purple-200 flex items-center justify-center text-[10px] font-bold">
+              <span className="w-4 h-4 rounded-full bg-purple-200 dark:bg-purple-700 flex items-center justify-center text-[10px] font-bold">
                 {o.displayName.charAt(0).toUpperCase()}
               </span>
               {o.displayName}
@@ -104,12 +104,12 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
 
       {/* Objective comments */}
       {open && objective.comments && (
-        <p className="px-5 pb-3 text-xs text-gray-500 italic leading-relaxed">{objective.comments}</p>
+        <p className="px-5 pb-3 text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed">{objective.comments}</p>
       )}
 
       {/* KRs */}
       {open && objective.keyResults.length > 0 && (
-        <div className="border-t border-gray-100 bg-gray-50">
+        <div className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
           {objective.keyResults.map((kr) => (
             <KRRow key={kr._id} kr={kr} />
           ))}
@@ -117,7 +117,7 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
       )}
 
       {open && objective.keyResults.length === 0 && (
-        <p className="px-5 py-3 text-xs text-gray-400 border-t border-gray-100">No key results.</p>
+        <p className="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700">No key results.</p>
       )}
     </div>
   );
@@ -141,11 +141,11 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref }: Pres
         <div>
           <div className="flex items-center gap-3">
             {teamIconUrl && (
-              <img src={teamIconUrl} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
+              <img src={teamIconUrl} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200 dark:border-gray-700" />
             )}
-            <h1 className="text-2xl font-bold text-gray-900">{teamName}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{teamName}</h1>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">{period}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{period}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-400 uppercase tracking-wide font-medium">Overall</span>
@@ -153,8 +153,8 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref }: Pres
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
               page.status === 'published'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-yellow-100 text-yellow-700'
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
             }`}
           >
             {page.status === 'published' ? 'Published' : 'Draft'}
@@ -162,7 +162,7 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref }: Pres
           {editHref && (
             <Link
               href={editHref}
-              className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
             >
               Edit
             </Link>

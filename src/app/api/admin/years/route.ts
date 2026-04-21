@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDB } from '@/lib/mongodb';
 import { requireAuth, ok, err } from '@/lib/apiUtils';
 import { isAdmin } from '@/lib/auth';
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest) {
   await connectDB();
 
   const result = await OKRPage.aggregate([
+    { $match: { tenantId: new mongoose.Types.ObjectId(user.tenantId) } },
     { $group: { _id: '$period.year' } },
     { $sort: { _id: -1 } },
   ]);

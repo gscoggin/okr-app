@@ -8,6 +8,8 @@
  *   4. User cannot update an objective on another tenant's page
  *   5. User cannot delete another tenant's OKR page
  *   6. Admin cannot delete an org from another tenant
+ *   7. User cannot edit a key result from another tenant
+ *   8. User cannot delete a key result from another tenant
  */
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
 import { req, json } from '../helpers/request';
@@ -19,6 +21,7 @@ import {
   addTeamMember,
   createOKRPage,
   createObjective,
+  createKeyResult,
 } from '../helpers/fixtures';
 
 import { GET as getOrgs } from '@/app/api/orgs/route';
@@ -27,7 +30,9 @@ import { GET as getPage } from '@/app/api/okr-pages/[pageId]/route';
 import { DELETE as deletePage } from '@/app/api/okr-pages/[pageId]/route';
 import { POST as postObjective } from '@/app/api/objectives/route';
 import { PATCH as patchObjective } from '@/app/api/objectives/[objectiveId]/route';
+import { PATCH as patchKR, DELETE as deleteKR } from '@/app/api/key-results/[krId]/route';
 import Objective from '@/models/Objective';
+import KeyResult from '@/models/KeyResult';
 
 beforeAll(() => connectTestDB(), 30000);
 afterAll(() => disconnectTestDB());
@@ -140,4 +145,38 @@ it('admin cannot delete an org from another tenant', async () => {
   );
   // Route returns 404 to avoid leaking that the org exists in another tenant
   expect(res.status).toBe(404);
+});
+
+// ── 7. Cannot edit a KR from another tenant ───────────────────────────────────
+
+it('user cannot edit a key result that belongs to another tenant', async () => {
+  const { adminA, pageB } = await twoTenantSetup();
+  const { objectiveId: objB } = await createObjective(pageB, 'Tenant B Objective');
+  const { krId } = await createKeyResult(objB, { title: 'Original KR title' });
+
+  const res = await patchKR(
+    req('PATCH', `/api/key-results/${krId}`, {
+      body: { title: 'Cross-tenant KR edit' },
+      token: adminA.token,
+    }),
+    { params: Promise.resolve({ krId }) }
+  );
+  expect(res.status).toBe(403);
+  const kr = await KeyResult.findById(krId).lean();
+  expect(kr!.title).toBe('Original KR title');
+});
+
+// ── 8. Cannot delete a KR from another tenant ────────────────────────────────
+
+it('user cannot delete a key result that belongs to another tenant', async () => {
+  const { adminA, pageB } = await twoTenantSetup();
+  const { objectiveId: objB } = await createObjective(pageB, 'Tenant B Objective');
+  const { krId } = await createKeyResult(objB);
+
+  const res = await deleteKR(
+    req('DELETE', `/api/key-results/${krId}`, { token: adminA.token }),
+    { params: Promise.resolve({ krId }) }
+  );
+  expect(res.status).toBe(403);
+  expect(await KeyResult.findById(krId)).not.toBeNull();
 });

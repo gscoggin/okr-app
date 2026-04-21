@@ -41,7 +41,7 @@ const ScoreSnapshotSchema = new Schema<ScoreSnapshot>(
 const ObjectiveSchema = new Schema<ObjectiveDocument>(
   {
     okrPageId: { type: Schema.Types.ObjectId, ref: 'OKRPage', required: true },
-    title: { type: String, default: '', trim: true },
+    title: { type: String, default: '', trim: true, maxlength: 500 },
     owners: { type: [OwnerRefSchema], default: [] },
     priority: { type: Number, min: 1 },
     comments: { type: String },
@@ -55,6 +55,7 @@ const ObjectiveSchema = new Schema<ObjectiveDocument>(
 );
 
 ObjectiveSchema.index({ okrPageId: 1, sortOrder: 1 });
+ObjectiveSchema.index({ 'owners.type': 1, 'owners.id': 1 });
 
 const Objective: Model<ObjectiveDocument> =
   mongoose.models.Objective ||

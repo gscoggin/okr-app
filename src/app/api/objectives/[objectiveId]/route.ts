@@ -34,6 +34,8 @@ export async function GET(
 
   const objective = await Objective.findById(objectiveId).lean();
   if (!objective) return err('Objective not found', 404);
+  const page = await OKRPage.findById(objective.okrPageId).lean();
+  if (!page || page.tenantId?.toString() !== user.tenantId) return err('Objective not found', 404);
   const krs = await KeyResult.find({ objectiveId }).sort({ sortOrder: 1 }).lean();
   return ok({ ...objective, keyResults: krs });
 }
@@ -105,13 +107,13 @@ export async function POST(
   const { objectiveId } = await params;
   await connectDB();
 
-  const objective = await Objective.findById(objectiveId);
-  if (!objective) return err('Objective not found', 404);
+  const ctx = await authorizeObjective(user, objectiveId);
+  if (!ctx) return err('Forbidden or not found', 403);
 
   const krs = await KeyResult.find({ objectiveId }).lean();
   const score = computeObjectiveScore(krs);
-  objective.score = score;
-  await objective.save();
+  ctx.objective.score = score;
+  await ctx.objective.save();
 
   return ok({ score });
 }

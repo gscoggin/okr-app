@@ -29,6 +29,8 @@ const UserSchema = new Schema<UserDocument>(
   { timestamps: true }
 );
 
+UserSchema.index({ tenantId: 1 });
+
 const User: Model<UserDocument> =
   mongoose.models.User || mongoose.model<UserDocument>('User', UserSchema);
 

@@ -70,7 +70,7 @@ export function OwnerPicker({ value, onChange, required, placeholder }: OwnerPic
         {value.map((o) => (
           <span
             key={o.id}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
           >
             <span className="opacity-60">{o.type === 'team' ? '👥' : '👤'}</span>
             {o.displayName}
@@ -90,23 +90,23 @@ export function OwnerPicker({ value, onChange, required, placeholder }: OwnerPic
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? 'Add owner…'}
-        className={`w-full text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-          required && value.length === 0 ? 'border-red-300' : 'border-gray-200'
+        className={`w-full text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
+          required && value.length === 0 ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-600'
         }`}
       />
 
       {open && results.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto text-sm">
+        <ul className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto text-sm">
           {results.map((r) => (
             <li key={r.id}>
               <button
                 type="button"
                 onClick={() => add(r)}
-                className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-800 dark:text-gray-200"
               >
                 <span className="text-gray-400">{r.type === 'team' ? '👥' : '👤'}</span>
                 {r.displayName}
-                <span className="text-gray-400 ml-auto text-xs capitalize">{r.type}</span>
+                <span className="text-gray-400 dark:text-gray-500 ml-auto text-xs capitalize">{r.type}</span>
               </button>
             </li>
           ))}

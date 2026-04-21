@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (!user || !isAdmin(user)) return err('Forbidden', 403);
 
   await connectDB();
-  const archives = await Archive.find({})
+  const archives = await Archive.find({ tenantId: user.tenantId })
     .sort({ archivedAt: -1 })
     .select('-compressedData')
     .lean();
@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
 
     const team = await Team.findById(targetId).lean();
     if (!team) return err('Team not found', 404);
+    if (team.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
 
     const data = await collectTeamData(targetId);
     const compressed = await compress(data);
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
       name: team.name,
       compressedData: compressed,
       archivedBy: user.userId,
+      tenantId: user.tenantId,
       originalId: targetId,
       metadata: { orgId: team.orgId.toString(), teamId: targetId, pageCount: data.pages.length },
     });
@@ -85,6 +87,7 @@ export async function POST(req: NextRequest) {
 
     const org = await Org.findById(targetId).lean();
     if (!org) return err('Org not found', 404);
+    if (org.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
 
     const orgTeams = await Team.find({ orgId: targetId }).lean();
     const teamData = await Promise.all(
@@ -99,6 +102,7 @@ export async function POST(req: NextRequest) {
       name: org.name,
       compressedData: compressed,
       archivedBy: user.userId,
+      tenantId: user.tenantId,
       originalId: targetId,
       metadata: { orgId: targetId, pageCount: teamData.reduce((n, t) => n + t.pages.length, 0) },
     });
@@ -128,10 +132,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check not already archived
-    const existing = await Archive.findOne({ type: 'year', originalId: String(year) });
+    const existing = await Archive.findOne({ type: 'year', originalId: String(year), tenantId: user.tenantId });
     if (existing) return err(`Year ${year} is already archived`, 409);
 
-    const pages = await OKRPage.find({ 'period.year': year }).lean();
+    const pages = await OKRPage.find({ 'period.year': year, tenantId: user.tenantId }).lean();
     if (pages.length === 0 && !auto) return err(`No OKR data found for ${year}`, 404);
 
     const pageIds = pages.map((p) => p._id);
@@ -147,6 +151,7 @@ export async function POST(req: NextRequest) {
       name: String(year),
       compressedData: compressed,
       archivedBy: user.userId,
+      tenantId: user.tenantId,
       originalId: String(year),
       metadata: { year, pageCount: pages.length, autoArchived: !!auto },
     });

@@ -30,7 +30,7 @@ const OwnerRefSchema = new Schema<OwnerRef>(
 const KeyResultSchema = new Schema<KeyResultDocument>(
   {
     objectiveId: { type: Schema.Types.ObjectId, ref: 'Objective', required: true },
-    title: { type: String, default: '', trim: true },
+    title: { type: String, default: '', trim: true, maxlength: 500 },
     owners: { type: [OwnerRefSchema], default: [] },
     metric: { type: String, trim: true },
     startValue: { type: Number },
@@ -46,6 +46,7 @@ const KeyResultSchema = new Schema<KeyResultDocument>(
 );
 
 KeyResultSchema.index({ objectiveId: 1, sortOrder: 1 });
+KeyResultSchema.index({ 'owners.type': 1, 'owners.id': 1 });
 
 const KeyResult: Model<KeyResultDocument> =
   mongoose.models.KeyResult ||

@@ -8,6 +8,7 @@ export interface ArchiveDocument extends Document {
   compressedData: Buffer;
   archivedAt: Date;
   archivedBy: mongoose.Types.ObjectId;
+  tenantId: mongoose.Types.ObjectId;
   originalId: string; // org/team _id, or year as string e.g. "2022"
   metadata: {
     orgId?: string;
@@ -25,6 +26,7 @@ const ArchiveSchema = new Schema<ArchiveDocument>(
     compressedData: { type: Buffer, required: true },
     archivedAt: { type: Date, default: Date.now },
     archivedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
     originalId: { type: String, required: true },
     metadata: { type: Schema.Types.Mixed, default: {} },
   },
@@ -32,6 +34,7 @@ const ArchiveSchema = new Schema<ArchiveDocument>(
 );
 
 ArchiveSchema.index({ type: 1, originalId: 1 });
+ArchiveSchema.index({ tenantId: 1, archivedAt: -1 });
 
 const Archive: Model<ArchiveDocument> =
   mongoose.models.Archive || mongoose.model<ArchiveDocument>('Archive', ArchiveSchema);

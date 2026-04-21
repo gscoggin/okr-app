@@ -11,6 +11,7 @@ import { getCurrentUser, canEditTeamOKR } from '@/lib/auth';
 import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
 import { PresentationView } from '@/components/presentation/PresentationView';
 import { CreateOKRPageView } from './CreateOKRPageView';
+import { SharedObjectivesSection } from '@/components/okr/SharedObjectivesSection';
 import { serializeOKRPageWithNested } from '@/lib/serializeOKR';
 import type { IOKRPage } from '@/types';
 
@@ -89,6 +90,9 @@ export default async function AnnualOKRPage({ params, searchParams }: Props) {
           editHref={canEdit ? `${baseHref}?edit` : undefined}
         />
       )}
+      <div className="max-w-4xl mx-auto px-4 pb-12">
+        <SharedObjectivesSection teamId={teamId} year={year} />
+      </div>
     </div>
   );
 }

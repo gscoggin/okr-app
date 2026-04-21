@@ -15,6 +15,7 @@ async function authorizeKR(user: ReturnType<typeof requireAuth>, krId: string) {
   if (!objective) return null;
   const page = await OKRPage.findById(objective.okrPageId);
   if (!page) return null;
+  if (page.tenantId?.toString() !== user.tenantId) return null;
   if (!isAdmin(user) && !isTeamOwner(user, page.teamId.toString())) return null;
   return { kr, objective, page };
 }

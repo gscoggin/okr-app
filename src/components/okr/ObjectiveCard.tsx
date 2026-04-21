@@ -70,7 +70,7 @@ export function ObjectiveCard({
               className="w-full text-base font-semibold text-gray-900 dark:text-gray-100 bg-transparent border-0 border-b border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-blue-400 focus:outline-none py-0.5 transition"
             />
           ) : (
-            <p className="text-base font-semibold text-gray-900">{objective.title}</p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{objective.title}</p>
           )}
 
           <div className="mt-2">
@@ -132,10 +132,10 @@ export function ObjectiveCard({
                   onObjectiveChange({ priority: e.target.value === '' ? undefined : parseInt(e.target.value) })
                 }
                 placeholder="1 = highest"
-                className="w-full text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700 dark:text-gray-100"
               />
             ) : (
-              <p className="text-sm text-gray-700">{objective.priority ?? '—'}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{objective.priority ?? '—'}</p>
             )}
           </div>
           <div className="sm:col-span-2">
@@ -146,10 +146,10 @@ export function ObjectiveCard({
                 onChange={(e) => onObjectiveChange({ comments: e.target.value })}
                 placeholder="Optional notes…"
                 rows={2}
-                className="w-full text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white resize-none"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700 dark:text-gray-100 resize-none"
               />
             ) : (
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{objective.comments || '—'}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{objective.comments || '—'}</p>
             )}
           </div>
         </div>
@@ -190,7 +190,7 @@ export function ObjectiveCard({
                 value={bulkCount}
                 onChange={(e) => setBulkCount(e.target.value)}
                 placeholder="or enter qty"
-                className="w-24 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-500"
+                className="w-24 text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400"
               />
             </div>
           )}

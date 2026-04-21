@@ -9,7 +9,14 @@ import { useAuth } from '@/components/AuthProvider';
 export function Topbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
+  };
+  const themeLabel = theme === 'light' ? 'Switch to dark mode' : theme === 'dark' ? 'Switch to system default' : 'Switch to light mode';
   const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -44,14 +51,14 @@ export function Topbar() {
 
         <div className="flex-1" />
 
-        {/* Dark mode toggle */}
+        {/* Theme cycle: light → dark → system */}
         <button
-          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          onClick={cycleTheme}
           className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-          title="Toggle dark mode"
-          aria-label="Toggle dark mode"
+          title={themeLabel}
+          aria-label={themeLabel}
         >
-          {resolvedTheme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          {theme === 'light' ? <MoonIcon /> : theme === 'dark' ? <SystemIcon /> : <SunIcon />}
         </button>
 
         {user && (
@@ -111,6 +118,15 @@ function MoonIcon() {
   return (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  );
+}
+
+function SystemIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <rect x="2" y="3" width="20" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 21h8M12 17v4" />
     </svg>
   );
 }

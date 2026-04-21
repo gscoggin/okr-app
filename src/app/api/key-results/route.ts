@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 
   const page = await OKRPage.findById(objective.okrPageId);
   if (!page) return err('OKR page not found', 404);
+  if (page.tenantId?.toString() !== user.tenantId) return err('Forbidden', 403);
   if (!isAdmin(user) && !isTeamOwner(user, page.teamId.toString())) return err('Forbidden', 403);
 
   const count = await KeyResult.countDocuments({ objectiveId });

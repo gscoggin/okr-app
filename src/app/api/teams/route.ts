@@ -11,10 +11,12 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const orgId = searchParams.get('orgId');
+  const q = searchParams.get('q');
 
   await connectDB();
   const filter: Record<string, unknown> = { tenantId: user.tenantId };
   if (orgId) filter.orgId = orgId;
+  if (q) filter.name = { $regex: q, $options: 'i' };
   const teams = await Team.find(filter).sort({ name: 1 }).lean();
   return ok(teams);
 }
