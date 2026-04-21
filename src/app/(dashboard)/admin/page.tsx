@@ -416,7 +416,7 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Admin</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">Admin</h1>
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
@@ -425,14 +425,14 @@ export default function AdminPage() {
 
           {/* ── Orgs ─────────────────────────────────────────────────────────── */}
           <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Organizations</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Organizations</h2>
 
             {orgs.length === 0 ? (
               <p className="text-sm text-gray-400 mb-4">No organizations yet.</p>
             ) : (
-              <ul className="mb-4 divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+              <ul className="mb-4 divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                 {orgs.map((org) => (
-                  <li key={org._id} className="px-4 py-3 bg-white flex items-center gap-3">
+                  <li key={org._id} className="px-4 py-3 bg-white dark:bg-gray-800 flex items-center gap-3">
                     <IconUpload
                       iconUrl={org.iconUrl}
                       size={36}
@@ -440,42 +440,42 @@ export default function AdminPage() {
                       onSave={(url) => saveOrgIcon(org._id, url)}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800">{org.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{org.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {teamsInOrg(org._id).length} team{teamsInOrg(org._id).length !== 1 ? 's' : ''}
                       </p>
                     </div>
 
                     {confirmArchiveOrg === org._id ? (
                       <span className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-500">Archive org + all teams?</span>
+                        <span className="text-gray-500 dark:text-gray-400">Archive org + all teams?</span>
                         <button
                           onClick={() => archiveOrg(org._id)}
                           disabled={archivingId === org._id}
-                          className="text-amber-600 font-medium hover:text-amber-800 disabled:opacity-50"
+                          className="text-amber-600 font-medium hover:text-amber-500 disabled:opacity-50"
                         >
                           {archivingId === org._id ? 'Archiving…' : 'Archive'}
                         </button>
-                        <button onClick={() => setConfirmArchiveOrg('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                        <button onClick={() => setConfirmArchiveOrg('')} className="text-gray-400 hover:text-gray-300">Cancel</button>
                       </span>
                     ) : confirmDeleteOrg === org._id ? (
                       <span className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-500">Delete org + all teams?</span>
-                        <button onClick={() => deleteOrg(org._id)} className="text-red-600 font-medium hover:text-red-800">Yes</button>
-                        <button onClick={() => setConfirmDeleteOrg('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                        <span className="text-gray-500 dark:text-gray-400">Delete org + all teams?</span>
+                        <button onClick={() => deleteOrg(org._id)} className="text-red-600 font-medium hover:text-red-500">Yes</button>
+                        <button onClick={() => setConfirmDeleteOrg('')} className="text-gray-400 hover:text-gray-300">Cancel</button>
                       </span>
                     ) : (
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => { setConfirmArchiveOrg(org._id); setConfirmDeleteOrg(''); }}
-                          className="text-gray-300 hover:text-amber-400 transition"
+                          className="text-gray-300 dark:text-gray-600 hover:text-amber-400 transition"
                           title="Archive org"
                         >
                           <ArchiveIcon />
                         </button>
                         <button
                           onClick={() => { setConfirmDeleteOrg(org._id); setConfirmArchiveOrg(''); }}
-                          className="text-gray-300 hover:text-red-400 transition"
+                          className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition"
                           title="Delete org"
                         >
                           <TrashIcon />
@@ -494,7 +494,7 @@ export default function AdminPage() {
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
                 required
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button type="submit" disabled={orgSaving} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
                 {orgSaving ? 'Creating…' : 'Create Org'}
@@ -505,7 +505,7 @@ export default function AdminPage() {
 
           {/* ── Teams ────────────────────────────────────────────────────────── */}
           <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Teams</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Teams</h2>
 
             {orgs.length === 0 ? (
               <p className="text-sm text-gray-400">Create an organization first.</p>
@@ -515,7 +515,7 @@ export default function AdminPage() {
                   const orgTeams = teamsInOrg(org._id);
                   return (
                     <div key={org._id} className="mb-4">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{org.name}</p>
+                      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{org.name}</p>
                       {orgTeams.length === 0 ? (
                         <p className="text-sm text-gray-400 mb-2 pl-2">No teams yet.</p>
                       ) : (
@@ -525,9 +525,9 @@ export default function AdminPage() {
                             const isExpanded = !!expandedTeams[team._id];
                             const nonMembers = users.filter((u) => !team.members.find((m) => m.userId === u._id));
                             return (
-                              <div key={team._id} className="border border-gray-200 rounded-xl overflow-hidden">
+                              <div key={team._id} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                                 {/* Team header row */}
-                                <div className="px-4 py-3 bg-white flex items-center gap-3">
+                                <div className="px-4 py-3 bg-white dark:bg-gray-800 flex items-center gap-3">
                                   <IconUpload
                                     iconUrl={team.iconUrl}
                                     size={32}
@@ -540,44 +540,44 @@ export default function AdminPage() {
                                   >
                                     <ChevronIcon open={isExpanded} small />
                                     <div className="min-w-0">
-                                      <p className="text-sm font-medium text-gray-800">{team.name}</p>
-                                      {parent && <p className="text-xs text-gray-400 mt-0.5">Sub-team of {parent.name}</p>}
+                                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{team.name}</p>
+                                      {parent && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Sub-team of {parent.name}</p>}
                                     </div>
-                                    <span className="text-xs text-gray-400 shrink-0">
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
                                       {team.members.length} member{team.members.length !== 1 ? 's' : ''}
                                     </span>
                                   </button>
 
                                   {confirmArchiveTeam === team._id ? (
                                     <span className="flex items-center gap-2 text-xs shrink-0">
-                                      <span className="text-gray-500">Archive team + OKRs?</span>
+                                      <span className="text-gray-500 dark:text-gray-400">Archive team + OKRs?</span>
                                       <button
                                         onClick={() => archiveTeam(team._id)}
                                         disabled={archivingId === team._id}
-                                        className="text-amber-600 font-medium hover:text-amber-800 disabled:opacity-50"
+                                        className="text-amber-600 font-medium hover:text-amber-500 disabled:opacity-50"
                                       >
                                         {archivingId === team._id ? 'Archiving…' : 'Archive'}
                                       </button>
-                                      <button onClick={() => setConfirmArchiveTeam('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                                      <button onClick={() => setConfirmArchiveTeam('')} className="text-gray-400 hover:text-gray-300">Cancel</button>
                                     </span>
                                   ) : confirmDeleteTeam === team._id ? (
                                     <span className="flex items-center gap-2 text-xs shrink-0">
-                                      <span className="text-gray-500">Delete team + OKRs?</span>
-                                      <button onClick={() => deleteTeam(team._id)} className="text-red-600 font-medium hover:text-red-800">Yes</button>
-                                      <button onClick={() => setConfirmDeleteTeam('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                                      <span className="text-gray-500 dark:text-gray-400">Delete team + OKRs?</span>
+                                      <button onClick={() => deleteTeam(team._id)} className="text-red-600 font-medium hover:text-red-500">Yes</button>
+                                      <button onClick={() => setConfirmDeleteTeam('')} className="text-gray-400 hover:text-gray-300">Cancel</button>
                                     </span>
                                   ) : (
                                     <div className="flex items-center gap-2 shrink-0">
                                       <button
                                         onClick={() => { setConfirmArchiveTeam(team._id); setConfirmDeleteTeam(''); }}
-                                        className="text-gray-300 hover:text-amber-400 transition"
+                                        className="text-gray-300 dark:text-gray-600 hover:text-amber-400 transition"
                                         title="Archive team"
                                       >
                                         <ArchiveIcon />
                                       </button>
                                       <button
                                         onClick={() => { setConfirmDeleteTeam(team._id); setConfirmArchiveTeam(''); }}
-                                        className="text-gray-300 hover:text-red-400 transition"
+                                        className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition"
                                         title="Delete team"
                                       >
                                         <TrashIcon />
@@ -588,7 +588,7 @@ export default function AdminPage() {
 
                                 {/* Expanded: member chips + add row */}
                                 {isExpanded && (
-                                  <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-3">
+                                  <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 space-y-3">
                                     {/* Member chips */}
                                     {team.members.length === 0 ? (
                                       <p className="text-xs text-gray-400">No members yet.</p>
@@ -597,12 +597,12 @@ export default function AdminPage() {
                                         {team.members.map((m) => {
                                           const u = userById(m.userId);
                                           return (
-                                            <span key={m.userId} className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 bg-white border border-gray-200 rounded-full text-xs">
+                                            <span key={m.userId} className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs">
                                               <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-medium uppercase text-[10px] shrink-0">
                                                 {u?.name?.[0] ?? '?'}
                                               </span>
-                                              <span className="font-medium text-gray-700">{u?.name ?? m.userId}</span>
-                                              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${m.role === 'owner' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>
+                                              <span className="font-medium text-gray-700 dark:text-gray-300">{u?.name ?? m.userId}</span>
+                                              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${m.role === 'owner' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300'}`}>
                                                 {m.role}
                                               </span>
                                               <button
@@ -623,7 +623,7 @@ export default function AdminPage() {
                                       <select
                                         value={inlineTeamId === team._id ? inlineUserId : ''}
                                         onChange={(e) => { setInlineTeamId(team._id); setInlineUserId(e.target.value); }}
-                                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                       >
                                         <option value="">Add member…</option>
                                         {nonMembers.map((u) => (
@@ -633,7 +633,7 @@ export default function AdminPage() {
                                       <select
                                         value={inlineTeamId === team._id ? inlineRole : 'member'}
                                         onChange={(e) => { setInlineTeamId(team._id); setInlineRole(e.target.value as 'owner' | 'member'); }}
-                                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                       >
                                         <option value="member">Member</option>
                                         <option value="owner">Owner</option>
@@ -660,21 +660,21 @@ export default function AdminPage() {
                   );
                 })}
 
-                <form onSubmit={createTeam} className="space-y-3 border border-gray-200 rounded-xl p-4 bg-gray-50">
-                  <p className="text-sm font-medium text-gray-700">New Team</p>
+                <form onSubmit={createTeam} className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">New Team</p>
                   <input
                     type="text"
                     placeholder="Team name"
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
                     required
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <select
                     value={teamOrgId}
                     onChange={(e) => { setTeamOrgId(e.target.value); setTeamParentId(''); }}
                     required
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select organization…</option>
                     {orgs.map((org) => (
@@ -685,7 +685,7 @@ export default function AdminPage() {
                     <select
                       value={teamParentId}
                       onChange={(e) => setTeamParentId(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">No parent (top-level team)</option>
                       {teamsInOrg(teamOrgId).map((t) => (
@@ -704,51 +704,51 @@ export default function AdminPage() {
 
           {/* ── Users ────────────────────────────────────────────────────────── */}
           <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Users</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Users</h2>
 
-            <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden mb-4">
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-4">
               {users.map((u) => {
                 const roleBadge: Record<string, string> = {
                   tenant_owner: 'bg-purple-100 text-purple-700',
                   admin: 'bg-blue-100 text-blue-700',
-                  member: 'bg-gray-100 text-gray-500',
+                  member: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
                 };
                 const isMe = u._id === user?.userId;
                 const canChange = !isMe && !(u.role === 'tenant_owner' && !isTenantOwner);
                 return (
-                  <li key={u._id} className="flex items-center px-4 py-3 bg-white gap-3">
+                  <li key={u._id} className="flex items-center px-4 py-3 bg-white dark:bg-gray-800 gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold uppercase shrink-0">
                       {u.name?.[0] ?? '?'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
-                      <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{u.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{u.email}</p>
                     </div>
                     {canChange ? (
                       <select
                         value={u.role}
                         onChange={(e) => changeUserRole(u._id, e.target.value)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 shrink-0"
+                        className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 shrink-0"
                       >
                         <option value="member">member</option>
                         <option value="admin">admin</option>
                         {isTenantOwner && <option value="tenant_owner">tenant_owner</option>}
                       </select>
                     ) : (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${roleBadge[u.role] ?? 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${roleBadge[u.role] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                         {u.role}
                       </span>
                     )}
                     {isMe ? (
-                      <span className="text-xs text-gray-300 w-6 text-right shrink-0">you</span>
+                      <span className="text-xs text-gray-300 dark:text-gray-600 w-6 text-right shrink-0">you</span>
                     ) : confirmDeleteUser === u._id ? (
                       <span className="flex items-center gap-2 text-xs shrink-0">
-                        <span className="text-gray-500">Delete?</span>
-                        <button onClick={() => deleteUser(u._id)} className="text-red-600 font-medium hover:text-red-800">Yes</button>
-                        <button onClick={() => setConfirmDeleteUser('')} className="text-gray-400 hover:text-gray-600">No</button>
+                        <span className="text-gray-500 dark:text-gray-400">Delete?</span>
+                        <button onClick={() => deleteUser(u._id)} className="text-red-600 font-medium hover:text-red-500">Yes</button>
+                        <button onClick={() => setConfirmDeleteUser('')} className="text-gray-400 hover:text-gray-300">No</button>
                       </span>
                     ) : (
-                      <button onClick={() => setConfirmDeleteUser(u._id)} className="text-gray-300 hover:text-red-400 transition shrink-0" title="Delete user">
+                      <button onClick={() => setConfirmDeleteUser(u._id)} className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition shrink-0" title="Delete user">
                         <TrashIcon />
                       </button>
                     )}
@@ -758,8 +758,8 @@ export default function AdminPage() {
             </ul>
 
             {/* Create user form */}
-            <form onSubmit={createUser} className="space-y-3 border border-gray-200 rounded-xl p-4 bg-gray-50">
-              <p className="text-sm font-medium text-gray-700">Add User to Workspace</p>
+            <form onSubmit={createUser} className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Add User to Workspace</p>
               <div className="grid grid-cols-2 gap-3">
                 <input
                   type="text"
@@ -767,7 +767,7 @@ export default function AdminPage() {
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
                   required
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="email"
@@ -775,7 +775,7 @@ export default function AdminPage() {
                   value={createEmail}
                   onChange={(e) => setCreateEmail(e.target.value)}
                   required
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="password"
@@ -784,12 +784,12 @@ export default function AdminPage() {
                   onChange={(e) => setCreatePassword(e.target.value)}
                   required
                   minLength={8}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <select
                   value={createRole}
                   onChange={(e) => setCreateRole(e.target.value as 'admin' | 'member')}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
@@ -804,7 +804,7 @@ export default function AdminPage() {
 
           {/* ── Archive Years ─────────────────────────────────────────────────── */}
           <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-1">Archive Years</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Archive Years</h2>
             <p className="text-xs text-gray-400 mb-4">
               Years older than {AUTO_ARCHIVE_AGE} years are auto-archived when this page loads.
             </p>
@@ -812,33 +812,33 @@ export default function AdminPage() {
             {activeYears.length === 0 ? (
               <p className="text-sm text-gray-400">No active year data found.</p>
             ) : (
-              <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                 {activeYears.map((year) => {
                   const isStale = currentYear - year > AUTO_ARCHIVE_AGE;
                   return (
-                    <li key={year} className="px-4 py-3 bg-white flex items-center gap-3">
+                    <li key={year} className="px-4 py-3 bg-white dark:bg-gray-800 flex items-center gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{year}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{year}</p>
                         {isStale && (
                           <p className="text-xs text-amber-500 mt-0.5">Queued for auto-archive</p>
                         )}
                       </div>
                       {confirmArchiveYear === year ? (
                         <span className="flex items-center gap-2 text-xs">
-                          <span className="text-gray-500">Archive all {year} OKR data?</span>
+                          <span className="text-gray-500 dark:text-gray-400">Archive all {year} OKR data?</span>
                           <button
                             onClick={() => archiveYear(year)}
                             disabled={archivingId === String(year)}
-                            className="text-amber-600 font-medium hover:text-amber-800 disabled:opacity-50"
+                            className="text-amber-600 font-medium hover:text-amber-500 disabled:opacity-50"
                           >
                             {archivingId === String(year) ? 'Archiving…' : 'Archive'}
                           </button>
-                          <button onClick={() => setConfirmArchiveYear(null)} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                          <button onClick={() => setConfirmArchiveYear(null)} className="text-gray-400 hover:text-gray-300">Cancel</button>
                         </span>
                       ) : (
                         <button
                           onClick={() => setConfirmArchiveYear(year)}
-                          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-amber-600 transition border border-gray-200 hover:border-amber-300 rounded-lg px-2.5 py-1"
+                          className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-amber-600 transition border border-gray-200 dark:border-gray-700 hover:border-amber-300 rounded-lg px-2.5 py-1"
                         >
                           <ArchiveIcon />
                           Archive
@@ -853,7 +853,7 @@ export default function AdminPage() {
 
           {/* ── Archived Items ────────────────────────────────────────────────── */}
           <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-1">Archived Items</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Archived Items</h2>
             <p className="text-xs text-gray-400 mb-4">
               Year archives can be restored within {AUTO_ARCHIVE_AGE} years. Limited to 20 year archives total.
             </p>
@@ -861,22 +861,22 @@ export default function AdminPage() {
             {archives.length === 0 ? (
               <p className="text-sm text-gray-400">No archives yet.</p>
             ) : (
-              <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                 {archives.map((a) => (
-                  <li key={a._id} className="px-4 py-3 bg-white flex items-center gap-3">
+                  <li key={a._id} className="px-4 py-3 bg-white dark:bg-gray-800 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-800">{a.name}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{a.name}</p>
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                           a.type === 'year' ? 'bg-purple-100 text-purple-600' :
                           a.type === 'org'  ? 'bg-blue-100 text-blue-600' :
-                                              'bg-gray-100 text-gray-500'
+                                              'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                         }`}>{a.type}</span>
                         {a.metadata?.autoArchived && (
-                          <span className="text-xs text-gray-400">auto</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">auto</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {a.metadata?.pageCount != null ? `${a.metadata.pageCount} page${a.metadata.pageCount !== 1 ? 's' : ''}` : ''}
                         {' · '}
                         {new Date(a.archivedAt).toLocaleDateString()}
@@ -884,25 +884,25 @@ export default function AdminPage() {
                     </div>
                     {confirmUnarchive === a._id ? (
                       <span className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-500">Restore to active?</span>
+                        <span className="text-gray-500 dark:text-gray-400">Restore to active?</span>
                         <button
                           onClick={() => unarchive(a._id)}
                           disabled={archivingId === a._id}
-                          className="text-blue-600 font-medium hover:text-blue-800 disabled:opacity-50"
+                          className="text-blue-600 font-medium hover:text-blue-500 disabled:opacity-50"
                         >
                           {archivingId === a._id ? 'Restoring…' : 'Restore'}
                         </button>
-                        <button onClick={() => setConfirmUnarchive('')} className="text-gray-400 hover:text-gray-600">Cancel</button>
+                        <button onClick={() => setConfirmUnarchive('')} className="text-gray-400 hover:text-gray-300">Cancel</button>
                       </span>
                     ) : a.canUnarchive ? (
                       <button
                         onClick={() => setConfirmUnarchive(a._id)}
-                        className="text-xs text-gray-400 hover:text-blue-600 transition border border-gray-200 hover:border-blue-300 rounded-lg px-2.5 py-1"
+                        className="text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 transition border border-gray-200 dark:border-gray-700 hover:border-blue-300 rounded-lg px-2.5 py-1"
                       >
                         Restore
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-300" title={`Outside the ${AUTO_ARCHIVE_AGE}-year restore window`}>
+                      <span className="text-xs text-gray-300 dark:text-gray-600" title={`Outside the ${AUTO_ARCHIVE_AGE}-year restore window`}>
                         Expired
                       </span>
                     )}
@@ -919,18 +919,18 @@ export default function AdminPage() {
               These actions are permanent and cannot be undone.
             </p>
 
-            <div className="border border-red-200 rounded-xl p-4 bg-red-50">
+            <div className="border border-red-200 dark:border-red-800 rounded-xl p-4 bg-red-50 dark:bg-red-950/50">
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">Delete All OKR Data</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Delete All OKR Data</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Permanently deletes every OKR page, objective, and key result. Archives are not affected.
                   </p>
                 </div>
                 {resetStep === 'idle' && !resetResult && (
                   <button
                     onClick={() => { setResetStep('creds'); setResetError(''); }}
-                    className="shrink-0 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-100 transition"
+                    className="shrink-0 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
                   >
                     Delete all…
                   </button>
@@ -938,7 +938,7 @@ export default function AdminPage() {
               </div>
 
               {resetResult && (
-                <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mt-2">
+                <p className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2 mt-2">
                   Done. Deleted {resetResult.pages} page{resetResult.pages !== 1 ? 's' : ''},{' '}
                   {resetResult.objectives} objective{resetResult.objectives !== 1 ? 's' : ''},{' '}
                   and {resetResult.keyResults} key result{resetResult.keyResults !== 1 ? 's' : ''}.
@@ -947,13 +947,13 @@ export default function AdminPage() {
 
               {resetStep === 'creds' && (
                 <div className="mt-3 space-y-3">
-                  <p className="text-xs font-medium text-gray-600">Confirm your identity to continue:</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Confirm your identity to continue:</p>
                   <input
                     type="email"
                     placeholder="Your email address"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                    className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-400"
                     autoComplete="email"
                   />
                   <input
@@ -961,7 +961,7 @@ export default function AdminPage() {
                     placeholder="Your password"
                     value={resetPassword}
                     onChange={(e) => setResetPassword(e.target.value)}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                    className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-400"
                     autoComplete="current-password"
                   />
                   {resetError && <p className="text-xs text-red-600">{resetError}</p>}
@@ -975,7 +975,7 @@ export default function AdminPage() {
                     </button>
                     <button
                       onClick={() => { setResetStep('idle'); setResetEmail(''); setResetPassword(''); setResetError(''); }}
-                      className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                      className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     >
                       Cancel
                     </button>
@@ -984,9 +984,9 @@ export default function AdminPage() {
               )}
 
               {resetStep === 'confirm' && (
-                <div className="mt-3 space-y-3 border border-red-300 rounded-lg p-3 bg-white">
-                  <p className="text-sm font-semibold text-red-700">Are you absolutely sure?</p>
-                  <p className="text-xs text-gray-600">
+                <div className="mt-3 space-y-3 border border-red-300 dark:border-red-700 rounded-lg p-3 bg-white dark:bg-gray-800">
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">Are you absolutely sure?</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     This will permanently erase <strong>all OKR pages, objectives, and key results</strong> across every team and org. This action cannot be undone.
                   </p>
                   {resetError && <p className="text-xs text-red-600">{resetError}</p>}
@@ -1000,7 +1000,7 @@ export default function AdminPage() {
                     </button>
                     <button
                       onClick={() => { setResetStep('idle'); setResetEmail(''); setResetPassword(''); setResetError(''); }}
-                      className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                      className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     >
                       Cancel
                     </button>
