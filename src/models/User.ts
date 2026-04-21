@@ -8,6 +8,8 @@ export interface UserDocument extends Document {
   passwordHash: string;
   role: UserRole;
   teamMemberships: { teamId: mongoose.Types.ObjectId; role: TeamRole }[];
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +27,8 @@ const UserSchema = new Schema<UserDocument>(
         role: { type: String, enum: ['owner', 'member'], default: 'member' },
       },
     ],
+    resetToken: { type: String },
+    resetTokenExpiry: { type: Date },
   },
   { timestamps: true }
 );
