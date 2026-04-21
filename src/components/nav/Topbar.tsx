@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/components/AuthProvider';
+import { SearchBox } from '@/components/nav/SearchBox';
 
 export function Topbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const cycleTheme = () => {
     if (theme === 'light') setTheme('dark');
@@ -17,13 +21,7 @@ export function Topbar() {
     else setTheme('light');
   };
   const themeLabel = theme === 'light' ? 'Switch to dark mode' : theme === 'dark' ? 'Switch to system default' : 'Switch to light mode';
-  const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (search.trim()) router.push(`/search?q=${encodeURIComponent(search.trim())}`);
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -39,15 +37,7 @@ export function Topbar() {
         </Link>
 
         {/* Search */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-sm">
-          <input
-            type="search"
-            placeholder="Search teams or orgs…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-          />
-        </form>
+        <SearchBox />
 
         <div className="flex-1" />
 
@@ -55,10 +45,10 @@ export function Topbar() {
         <button
           onClick={cycleTheme}
           className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-          title={themeLabel}
-          aria-label={themeLabel}
+          title={mounted ? themeLabel : ''}
+          aria-label={mounted ? themeLabel : 'Toggle theme'}
         >
-          {theme === 'light' ? <MoonIcon /> : theme === 'dark' ? <SystemIcon /> : <SunIcon />}
+          {!mounted ? <SunIcon /> : theme === 'light' ? <MoonIcon /> : theme === 'dark' ? <SystemIcon /> : <SunIcon />}
         </button>
 
         {user && (
