@@ -63,25 +63,23 @@ function ProgressBar({
   };
 
   return (
-    <div className="mt-3">
-      <div className="flex justify-between text-[11px] font-medium mb-1.5">
-        <span className="text-gray-400 dark:text-gray-500">{fmt(start)}</span>
-        <span className="text-gray-700 dark:text-gray-300">{fmt(current)}</span>
-        <span className="text-gray-400 dark:text-gray-500">{fmt(target)}</span>
-      </div>
-      <div className="relative h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+    <div className="mt-2.5 flex items-center gap-2">
+      <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{fmt(start)}</span>
+      <div className="relative flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
         <div
-          className="absolute inset-y-0 left-0 bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-500"
+          className="absolute inset-y-0 left-0 bg-blue-400 dark:bg-blue-500 rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
+      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium shrink-0">{fmt(current)}</span>
+      <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">/ {fmt(target)}</span>
     </div>
   );
 }
 
 // ── Key Result row ────────────────────────────────────────────────────────────
 
-function KRRow({ kr }: { kr: IKeyResult }) {
+function KRRow({ kr, index }: { kr: IKeyResult; index: number }) {
   const accentBorder =
     kr.confidence === 'high'   ? 'border-l-[3px] border-l-emerald-400' :
     kr.confidence === 'medium' ? 'border-l-[3px] border-l-amber-400' :
@@ -94,10 +92,10 @@ function KRRow({ kr }: { kr: IKeyResult }) {
         {/* Left: label + title + metadata */}
         <div className="flex-1 min-w-0">
           <span className="inline-flex items-center text-[9px] font-bold tracking-widest uppercase text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700/80 px-1.5 py-0.5 rounded mb-2">
-            Key Result
+            Key Result <span className="ml-1 opacity-60">{index + 1}</span>
           </span>
 
-          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug">{kr.title}</p>
+          <p className="text-[19px] font-medium text-gray-800 dark:text-gray-200 leading-snug">{kr.title}</p>
 
           {(kr.metric || kr.confidence) && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -149,7 +147,7 @@ function KRRow({ kr }: { kr: IKeyResult }) {
 
 // ── Objective block ───────────────────────────────────────────────────────────
 
-function ObjectiveBlock({ objective }: { objective: IObjective }) {
+function ObjectiveBlock({ objective, index }: { objective: IObjective; index: number }) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -162,7 +160,7 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
       >
         <div className="px-5 pt-4 pb-0.5 flex items-center gap-2">
           <span className="text-[9px] font-bold tracking-widest uppercase text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">
-            Objective
+            Objective <span className="ml-1 opacity-60">{index + 1}</span>
           </span>
           <span
             className={`ml-auto text-gray-400 dark:text-gray-500 text-sm transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`}
@@ -172,7 +170,7 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
         </div>
 
         <div className="px-5 pb-4 pt-2 flex items-start gap-4">
-          <span className="flex-1 text-[15px] font-semibold text-gray-900 dark:text-gray-100 leading-snug text-left">
+          <span className="flex-1 text-2xl font-semibold text-gray-900 dark:text-gray-100 leading-snug text-left">
             {objective.title || <span className="text-gray-400 italic">Untitled objective</span>}
           </span>
           <div className="shrink-0 flex flex-col items-center min-w-[3.5rem]">
@@ -196,13 +194,8 @@ function ObjectiveBlock({ objective }: { objective: IObjective }) {
             <p className="px-5 py-4 text-xs text-gray-400 dark:text-gray-500 italic">No key results yet.</p>
           ) : (
             <div className="bg-gray-50/60 dark:bg-gray-900/30">
-              <div className="px-5 pt-3 pb-1">
-                <span className="text-[10px] font-bold tracking-wider uppercase text-gray-400 dark:text-gray-500">
-                  Key Results · {objective.keyResults.length}
-                </span>
-              </div>
-              {objective.keyResults.map((kr) => (
-                <KRRow key={kr._id} kr={kr} />
+              {objective.keyResults.map((kr, i) => (
+                <KRRow key={kr._id} kr={kr} index={i} />
               ))}
             </div>
           )}
@@ -281,8 +274,8 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref, teamId
         <p className="text-center text-gray-400 dark:text-gray-500 py-16 text-sm">No objectives for this period.</p>
       ) : (
         <div className="space-y-5">
-          {page.objectives.map((obj) => (
-            <ObjectiveBlock key={obj._id} objective={obj} />
+          {page.objectives.map((obj, i) => (
+            <ObjectiveBlock key={obj._id} objective={obj} index={i} />
           ))}
         </div>
       )}

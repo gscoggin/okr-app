@@ -46,22 +46,22 @@ export function PeriodNav({ teamId, current }: PeriodNavProps) {
     <div className="flex items-center gap-2 text-sm">
       <button
         onClick={prev}
-        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition"
+        className="px-0.5 py-0.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
         aria-label="Previous period"
       >
-        ←
+        ‹
       </button>
 
-      <span className="font-semibold text-gray-800 dark:text-gray-100 min-w-[6rem] text-center">
+      <span className="font-semibold text-gray-800 dark:text-gray-100 min-w-[5.5rem] text-center">
         {periodLabel(current)}
       </span>
 
       <button
         onClick={next}
-        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition"
+        className="px-0.5 py-0.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
         aria-label="Next period"
       >
-        →
+        ›
       </button>
 
       {/* On quarterly pages, link back up to the annual page */}

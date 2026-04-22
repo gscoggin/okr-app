@@ -157,9 +157,7 @@ export function ObjectiveCard({
 
       {showDetails && (
         <div className="border-t border-gray-100 dark:border-gray-700 px-5 py-3 space-y-2">
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Key Results</p>
-
-          {objective.keyResults.length === 0 && (
+{objective.keyResults.length === 0 && (
             <p className="text-sm text-gray-400 dark:text-gray-500 italic">No key results yet.</p>
           )}
 
