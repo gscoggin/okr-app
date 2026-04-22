@@ -82,7 +82,7 @@ export function ObjectiveCard({
             ) : objective.owners.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {objective.owners.map((o) => (
-                  <span key={o.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  <span key={o.id} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">
                     {o.displayName}
                   </span>
                 ))}
@@ -93,13 +93,13 @@ export function ObjectiveCard({
 
         <div className="flex items-center gap-2 shrink-0">
           {!showDetails && objective.keyResults.length > 0 && (
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
               {objective.keyResults.length} KR{objective.keyResults.length !== 1 ? 's' : ''}
             </span>
           )}
           <button
             onClick={() => setShowDetails((s) => !s)}
-            className="text-xs text-gray-400 hover:text-gray-600 px-1"
+            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 px-1"
             title="Toggle key results"
           >
             {showDetails ? '▲' : '▼'}
@@ -122,7 +122,7 @@ export function ObjectiveCard({
       {showDetails && (
         <div className="border-t border-gray-100 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-gray-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Priority</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Priority</label>
             {canEdit ? (
               <input
                 type="number"
@@ -139,7 +139,7 @@ export function ObjectiveCard({
             )}
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Comments</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Comments</label>
             {canEdit ? (
               <textarea
                 value={objective.comments ?? ''}
@@ -157,10 +157,10 @@ export function ObjectiveCard({
 
       {showDetails && (
         <div className="border-t border-gray-100 dark:border-gray-700 px-5 py-3 space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Key Results</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Key Results</p>
 
           {objective.keyResults.length === 0 && (
-            <p className="text-sm text-gray-400 italic">No key results yet.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 italic">No key results yet.</p>
           )}
 
           {objective.keyResults.map((kr) => (

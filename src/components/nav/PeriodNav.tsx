@@ -46,19 +46,19 @@ export function PeriodNav({ teamId, current }: PeriodNavProps) {
     <div className="flex items-center gap-2 text-sm">
       <button
         onClick={prev}
-        className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition"
+        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition"
         aria-label="Previous period"
       >
         ←
       </button>
 
-      <span className="font-semibold text-gray-800 min-w-[6rem] text-center">
+      <span className="font-semibold text-gray-800 dark:text-gray-100 min-w-[6rem] text-center">
         {periodLabel(current)}
       </span>
 
       <button
         onClick={next}
-        className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition"
+        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition"
         aria-label="Next period"
       >
         →
@@ -68,7 +68,7 @@ export function PeriodNav({ teamId, current }: PeriodNavProps) {
       {current.type === 'quarterly' && (
         <Link
           href={`/teams/${teamId}/${current.year}`}
-          className="ml-2 px-2.5 py-1 rounded-full text-xs border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
+          className="ml-2 px-2.5 py-1 rounded-full text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
         >
           Annual
         </Link>

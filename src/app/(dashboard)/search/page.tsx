@@ -40,7 +40,7 @@ function SearchResults() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search teams, orgs, objectives…"
             autoFocus
-            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
           />
         </div>
       </form>
@@ -48,13 +48,13 @@ function SearchResults() {
       {/* Results area */}
       {initialQ ? (
         <div>
-          <p className="text-sm text-gray-500 mb-6">
-            Results for <span className="font-medium text-gray-800">&ldquo;{initialQ}&rdquo;</span>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Results for <span className="font-medium text-gray-800 dark:text-gray-200">&ldquo;{initialQ}&rdquo;</span>
           </p>
           {/* Placeholder — search backend not yet wired */}
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-400 dark:text-gray-500">
             <svg
-              className="w-10 h-10 mx-auto mb-3 text-gray-300"
+              className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

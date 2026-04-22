@@ -54,7 +54,7 @@ export function IconUpload({ iconUrl, size = 48, onSave, label }: IconUploadProp
         disabled={saving}
         title="Click to upload icon"
         style={{ width: size, height: size }}
-        className="relative group rounded-xl overflow-hidden border-2 border-dashed border-gray-300 hover:border-blue-400 transition flex items-center justify-center bg-gray-50 disabled:opacity-60"
+        className="relative group rounded-xl overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-400 transition flex items-center justify-center bg-gray-50 dark:bg-gray-800 disabled:opacity-60"
       >
         {iconUrl ? (
           <>

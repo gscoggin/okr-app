@@ -86,7 +86,7 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
           {canEdit && (
             <button
               onClick={onDelete}
-              className="text-gray-300 hover:text-red-400 transition"
+              className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition"
               aria-label="Delete key result"
               title="Delete key result"
             >

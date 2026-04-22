@@ -288,7 +288,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
             {canEdit && !confirmDelete && (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="text-xs text-gray-400 hover:text-red-500 transition"
+                className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 transition"
                 title="Delete this OKR page"
               >
                 Delete page
@@ -296,7 +296,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
             )}
             {canEdit && confirmDelete && (
               <span className="flex items-center gap-2 text-xs">
-                <span className="text-gray-600">Delete this page and all its OKRs?</span>
+                <span className="text-gray-600 dark:text-gray-300">Delete this page and all its OKRs?</span>
                 <button
                   onClick={deletePage}
                   className="text-red-600 font-medium hover:text-red-800 transition"
@@ -305,7 +305,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="text-gray-400 hover:text-gray-600 transition"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
                 >
                   Cancel
                 </button>
@@ -319,14 +319,14 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
           {doneHref && (
             <Link
               href={doneHref}
-              className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
             >
               ← Done editing
             </Link>
           )}
 
           {/* Autosave indicator */}
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             {saving === 'saving' && 'Saving…'}
             {saving === 'saved' && 'Saved'}
             {saving === 'error' && (
@@ -353,7 +353,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
             <button
               onClick={() => setPageStatus('draft')}
               disabled={publishing}
-              className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50 transition"
+              className="px-4 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition"
             >
               {publishing ? 'Reverting…' : 'Revert to Draft'}
             </button>
