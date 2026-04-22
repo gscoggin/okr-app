@@ -193,7 +193,7 @@ See [`docs/HOSTING.md`](docs/HOSTING.md) for a step-by-step guide to deploying o
 
 ### In progress / next
 - **OKR alignment tree** — company-level visual showing how team OKRs roll up to org goals
-- **AI writing assistance** — suggestions for objectives and KRs, plus quality critique on measurability (stubs in place, needs `ANTHROPIC_API_KEY`)
+- **AI writing assistance** — per-KR and per-objective critique, rewrite suggestions, and full-page OKR health check; see [`docs/AI_OKR_HELPER.md`](docs/AI_OKR_HELPER.md) for the full design plan (stubs in place, needs `ANTHROPIC_API_KEY`)
 
 ### Planned
 - **Public share links** — read-only shareable URLs for OKR pages, no login required

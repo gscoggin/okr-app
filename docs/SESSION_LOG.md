@@ -68,3 +68,30 @@
 - [ ] Public read-only share links for OKR pages
 - [ ] Comments / reactions on objectives and KRs
 - [ ] Mobile-responsive polish
+
+---
+
+### 2026-04-22 — UI polish pass + AI OKR helper design
+
+**Status:** All changes shipped to production. AI feature designed but not built.
+
+**Completed:**
+- Dark mode fixes across 7 components (IconUpload, KeyResultRow, search page, PeriodNav, ObjectiveCard, OKRPageEditor, guide page)
+- Presentation view redesign: Plus Jakarta Sans font, Objective/KR numbered labels, owners under score ring, progress bar, confidence accent borders, inline PeriodNav, 80px overall score ring
+- ImportExportPanel hidden from presentation view (edit mode only)
+- Period nav: tighter ‹ › carets, tighter spacing
+- Progress bar: simplified inline layout (less visual weight)
+- Objective title 24px, KR title 19px
+- Removed duplicate "Key Results" section headers from all cards
+- README comprehensive update covering all features
+- AI OKR Helper plan documented in docs/AI_OKR_HELPER.md
+
+**Next:**
+- Build AI OKR Helper (see docs/AI_OKR_HELPER.md for full plan — start with Phase 1 + 2)
+- OKR alignment tree (company-level visual rollup)
+- Share the app with beta testers
+
+**Decisions:**
+- AI feature is explicitly triggered (click), never automatic — cost control + UX
+- AI feedback is ephemeral (component state), not persisted to DB
+- Stubs already exist in OKRPageEditor, ObjectiveCard, KeyResultRow (search TODO Phase 2)
