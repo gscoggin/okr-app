@@ -3,178 +3,284 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { IOKRPage, IObjective, IKeyResult } from '@/types';
-import { presentationScoreBg, computePageScore, periodLabel } from '@/types';
+import { computePageScore } from '@/types';
 import { RingGauge } from '@/components/ui/RingGauge';
+import { PeriodNav } from '@/components/nav/PeriodNav';
 
-function ScoreChip({ score }: { score: number | undefined }) {
-  const cls = presentationScoreBg(score);
-  const label = score !== undefined && score !== null ? score.toFixed(2) : '—';
+// ── Small owner avatar cluster ────────────────────────────────────────────────
+
+function OwnerAvatars({
+  owners,
+  purple = false,
+}: {
+  owners: Array<{ id?: string; displayName: string }>;
+  purple?: boolean;
+}) {
+  if (owners.length === 0) return null;
+  const cls = purple
+    ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
+    : 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300';
   return (
-    <span className={`inline-flex items-center justify-center min-w-[3rem] px-3 py-1 rounded-full text-sm font-bold tabular-nums ${cls}`}>
-      {label}
-    </span>
-  );
-}
-
-function KRRow({ kr }: { kr: IKeyResult }) {
-  return (
-    <div className="py-4 px-5 border-b border-gray-100 dark:border-gray-700 last:border-0">
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug flex-1">{kr.title}</p>
-        <RingGauge score={kr.score ?? null} size={40} />
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-        {kr.metric && (
-          <span>
-            <span className="font-medium text-gray-600 dark:text-gray-300">Metric:</span> {kr.metric}
-          </span>
-        )}
-        {kr.currentValue !== undefined && kr.targetValue !== undefined && (
-          <span>
-            <span className="font-medium text-gray-600 dark:text-gray-300">Progress:</span>{' '}
-            {kr.currentValue} → {kr.targetValue}
-          </span>
-        )}
-      </div>
-
-      {kr.owners.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {kr.owners.map((o, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full font-medium"
-            >
-              <span className="w-4 h-4 rounded-full bg-blue-200 dark:bg-blue-700 flex items-center justify-center text-[10px] font-bold">
-                {o.displayName.charAt(0).toUpperCase()}
-              </span>
-              {o.displayName}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {kr.comments && (
-        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed">{kr.comments}</p>
+    <div className="flex items-center gap-0.5 justify-center flex-wrap mt-1.5">
+      {owners.slice(0, 3).map((o, i) => (
+        <span
+          key={i}
+          title={o.displayName}
+          className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold uppercase ring-1 ring-white dark:ring-gray-800 ${cls}`}
+        >
+          {o.displayName.charAt(0)}
+        </span>
+      ))}
+      {owners.length > 3 && (
+        <span className="text-[9px] text-gray-400 dark:text-gray-500 ml-0.5">+{owners.length - 3}</span>
       )}
     </div>
   );
 }
+
+// ── Progress bar: start → current → target ────────────────────────────────────
+
+function ProgressBar({
+  start,
+  current,
+  target,
+  metricType,
+}: {
+  start: number;
+  current: number;
+  target: number;
+  metricType?: string;
+}) {
+  const range = target - start;
+  if (range === 0) return null;
+  const pct = Math.max(0, Math.min(100, ((current - start) / range) * 100));
+
+  const fmt = (v: number) => {
+    if (metricType === 'percent') return `${v}%`;
+    if (metricType === 'currency') return `$${v.toLocaleString()}`;
+    if (metricType === 'ratio') return `${v}×`;
+    return v.toLocaleString();
+  };
+
+  return (
+    <div className="mt-3">
+      <div className="flex justify-between text-[11px] font-medium mb-1.5">
+        <span className="text-gray-400 dark:text-gray-500">{fmt(start)}</span>
+        <span className="text-gray-700 dark:text-gray-300">{fmt(current)}</span>
+        <span className="text-gray-400 dark:text-gray-500">{fmt(target)}</span>
+      </div>
+      <div className="relative h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div
+          className="absolute inset-y-0 left-0 bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Key Result row ────────────────────────────────────────────────────────────
+
+function KRRow({ kr }: { kr: IKeyResult }) {
+  const accentBorder =
+    kr.confidence === 'high'   ? 'border-l-[3px] border-l-emerald-400' :
+    kr.confidence === 'medium' ? 'border-l-[3px] border-l-amber-400' :
+    kr.confidence === 'low'    ? 'border-l-[3px] border-l-red-400' : '';
+
+  return (
+    <div className={`py-4 px-5 border-b border-gray-100 dark:border-gray-700/60 last:border-0 ${accentBorder}`}>
+      <div className="flex items-start gap-4">
+
+        {/* Left: label + title + metadata */}
+        <div className="flex-1 min-w-0">
+          <span className="inline-flex items-center text-[9px] font-bold tracking-widest uppercase text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700/80 px-1.5 py-0.5 rounded mb-2">
+            Key Result
+          </span>
+
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug">{kr.title}</p>
+
+          {(kr.metric || kr.confidence) && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              {kr.metric && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="font-semibold text-gray-600 dark:text-gray-300">Metric:</span>{' '}
+                  {kr.metric}
+                </span>
+              )}
+              {kr.confidence && (
+                <span
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                    kr.confidence === 'high'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                      : kr.confidence === 'medium'
+                      ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                      : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                  }`}
+                >
+                  {kr.confidence.charAt(0).toUpperCase() + kr.confidence.slice(1)} confidence
+                </span>
+              )}
+            </div>
+          )}
+
+          {kr.startValue != null && kr.currentValue != null && kr.targetValue != null && (
+            <ProgressBar
+              start={kr.startValue}
+              current={kr.currentValue}
+              target={kr.targetValue}
+              metricType={kr.metricType}
+            />
+          )}
+
+          {kr.comments && (
+            <p className="mt-2 text-xs text-gray-400 dark:text-gray-500 italic leading-relaxed">{kr.comments}</p>
+          )}
+        </div>
+
+        {/* Right: ring + owner avatars */}
+        <div className="shrink-0 flex flex-col items-center min-w-[3rem]">
+          <RingGauge score={kr.score ?? null} size={44} />
+          <OwnerAvatars owners={kr.owners} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Objective block ───────────────────────────────────────────────────────────
 
 function ObjectiveBlock({ objective }: { objective: IObjective }) {
   const [open, setOpen] = useState(true);
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
-      {/* Objective header */}
+
+      {/* Header */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+        className="w-full text-left hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors"
       >
-        <span
-          className={`shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`}
-          aria-hidden
-        >
-          ▾
-        </span>
+        <div className="px-5 pt-4 pb-0.5 flex items-center gap-2">
+          <span className="text-[9px] font-bold tracking-widest uppercase text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+            Objective
+          </span>
+          <span
+            className={`ml-auto text-gray-400 dark:text-gray-500 text-sm transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`}
+          >
+            ▾
+          </span>
+        </div>
 
-        <span className="flex-1 text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">
-          {objective.title}
-        </span>
-
-        <RingGauge score={objective.score ?? null} size={52} />
+        <div className="px-5 pb-4 pt-2 flex items-start gap-4">
+          <span className="flex-1 text-[15px] font-semibold text-gray-900 dark:text-gray-100 leading-snug text-left">
+            {objective.title || <span className="text-gray-400 italic">Untitled objective</span>}
+          </span>
+          <div className="shrink-0 flex flex-col items-center min-w-[3.5rem]">
+            <RingGauge score={objective.score ?? null} size={56} />
+            <OwnerAvatars owners={objective.owners} purple />
+          </div>
+        </div>
       </button>
 
-      {/* Owners row */}
-      {open && objective.owners.length > 0 && (
-        <div className="px-5 pb-2 flex flex-wrap gap-1.5">
-          {objective.owners.map((o, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full font-medium"
-            >
-              <span className="w-4 h-4 rounded-full bg-purple-200 dark:bg-purple-700 flex items-center justify-center text-[10px] font-bold">
-                {o.displayName.charAt(0).toUpperCase()}
-              </span>
-              {o.displayName}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Objective comments */}
+      {/* Optional comments */}
       {open && objective.comments && (
-        <p className="px-5 pb-3 text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed">{objective.comments}</p>
-      )}
-
-      {/* KRs */}
-      {open && objective.keyResults.length > 0 && (
-        <div className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-          {objective.keyResults.map((kr) => (
-            <KRRow key={kr._id} kr={kr} />
-          ))}
+        <div className="px-5 pb-3 text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed border-t border-gray-50 dark:border-gray-700/50 pt-2">
+          {objective.comments}
         </div>
       )}
 
-      {open && objective.keyResults.length === 0 && (
-        <p className="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700">No key results.</p>
+      {/* KR section */}
+      {open && (
+        <div className="border-t border-gray-100 dark:border-gray-700">
+          {objective.keyResults.length === 0 ? (
+            <p className="px-5 py-4 text-xs text-gray-400 dark:text-gray-500 italic">No key results yet.</p>
+          ) : (
+            <div className="bg-gray-50/60 dark:bg-gray-900/30">
+              <div className="px-5 pt-3 pb-1">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-gray-400 dark:text-gray-500">
+                  Key Results · {objective.keyResults.length}
+                </span>
+              </div>
+              {objective.keyResults.map((kr) => (
+                <KRRow key={kr._id} kr={kr} />
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 interface PresentationViewProps {
   page: IOKRPage;
   teamName: string;
   teamIconUrl?: string;
-  editHref?: string; // present if viewer has edit rights
+  editHref?: string;
+  teamId: string;
 }
 
-export function PresentationView({ page, teamName, teamIconUrl, editHref }: PresentationViewProps) {
+export function PresentationView({ page, teamName, teamIconUrl, editHref, teamId }: PresentationViewProps) {
   const pageScore = computePageScore(page.objectives);
-  const period = periodLabel(page.period);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
-        <div>
-          <div className="flex items-center gap-3">
-            {teamIconUrl && (
-              <img src={teamIconUrl} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200 dark:border-gray-700" />
-            )}
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{teamName}</h1>
-          </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{period}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400 uppercase tracking-wide font-medium">Overall</span>
-          <RingGauge score={pageScore ?? null} size={64} />
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              page.status === 'published'
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
-            }`}
-          >
-            {page.status === 'published' ? 'Published' : 'Draft'}
-          </span>
-          {editHref && (
-            <Link
-              href={editHref}
-              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
-              Edit
-            </Link>
+
+      {/* ── Page header ───────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-6 mb-10 flex-wrap">
+
+        {/* Left: team identity + period nav */}
+        <div className="flex items-start gap-3">
+          {teamIconUrl && (
+            <img
+              src={teamIconUrl}
+              alt=""
+              className="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5"
+            />
           )}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{teamName}</h1>
+            <div className="mt-1.5">
+              <PeriodNav teamId={teamId} current={page.period} />
+            </div>
+          </div>
+        </div>
+
+        {/* Right: status + overall ring */}
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="text-right space-y-1.5">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Overall</p>
+            <span
+              className={`inline-block text-xs px-2.5 py-1 rounded-full font-semibold ${
+                page.status === 'published'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                  : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
+              }`}
+            >
+              {page.status === 'published' ? 'Published' : 'Draft'}
+            </span>
+            {editHref && (
+              <div>
+                <Link
+                  href={editHref}
+                  className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition inline-block"
+                >
+                  Edit
+                </Link>
+              </div>
+            )}
+          </div>
+          <RingGauge score={pageScore ?? null} size={80} />
         </div>
       </div>
 
-      {/* Objectives */}
+      {/* ── Objectives list ───────────────────────────────────────────────── */}
       {page.objectives.length === 0 ? (
-        <p className="text-center text-gray-400 py-16 text-sm">No objectives for this period.</p>
+        <p className="text-center text-gray-400 dark:text-gray-500 py-16 text-sm">No objectives for this period.</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {page.objectives.map((obj) => (
             <ObjectiveBlock key={obj._id} objective={obj} />
           ))}

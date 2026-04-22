@@ -72,7 +72,7 @@ export default async function AnnualOKRPage({ params, searchParams }: Props) {
 
   const baseHref = `/teams/${teamId}/${year}`;
 
-  const toolbar = canEdit && (
+  const toolbar = editMode && (
     <div className="flex justify-end px-4 sm:px-6 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
       <ImportExportPanel teamId={teamId} year={year} period="annual" teamName={team.name} />
     </div>
@@ -96,6 +96,7 @@ export default async function AnnualOKRPage({ params, searchParams }: Props) {
           teamName={team.name}
           teamIconUrl={team.iconUrl ?? undefined}
           editHref={canEdit ? `${baseHref}?edit` : undefined}
+          teamId={teamId}
         />
       )}
       <div className="max-w-4xl mx-auto px-4 pb-12">
