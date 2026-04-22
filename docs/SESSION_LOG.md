@@ -95,3 +95,27 @@
 - AI feature is explicitly triggered (click), never automatic — cost control + UX
 - AI feedback is ephemeral (component state), not persisted to DB
 - Stubs already exist in OKRPageEditor, ObjectiveCard, KeyResultRow (search TODO Phase 2)
+
+---
+
+### 2026-04-22 — Demo page + invite system design
+
+**Status:** Plan documented, nothing built yet.
+
+**Completed:**
+- Full demo plan written to docs/DEMO_PLAN.md
+- AI OKR Helper plan already in docs/AI_OKR_HELPER.md
+
+**Next:**
+- Build demo in 6 phases (see DEMO_PLAN.md)
+- Phase 1 first: invite codes + modified /register page
+
+**Decisions:**
+- Demo runs on a separate `demo` git branch → separate Vercel deployment; no feature flags needed
+- main → demo merge is the "push to demo" mechanism; dedicated tooling parked for later
+- Registration will be invite-code gated (8-char, single-use, 7-day expiry)
+- Request access form: name + email + use case → email notification to admin Gmail → admin manually sends code
+- Demo JWT carries isDemo:true; all write API routes reject it server-side
+- Honeypot field on request access form (no CAPTCHA)
+- Demo data: current year + current quarter + previous quarter only; quarterly refresh via admin button
+- Vercel Analytics enabled on demo deployment (free)
