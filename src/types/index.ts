@@ -93,11 +93,14 @@ export interface ITeam {
 
 // ─── Key Result ───────────────────────────────────────────────────────────────
 
+export type MetricType = 'number' | 'percent' | 'currency' | 'average' | 'ratio' | 'milestone';
+
 export interface IKeyResult {
   _id: string;
   objectiveId: string;
   title: string;
   owners: OwnerRef[];
+  metricType?: MetricType;
   metric?: string;
   startValue?: number;
   targetValue?: number;

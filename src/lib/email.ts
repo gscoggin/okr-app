@@ -8,6 +8,11 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 export async function sendPasswordResetEmail(email: string, token: string) {
   const link = `${APP_URL}/reset-password?token=${token}`;
 
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`\n[DEV] Password reset link for ${email}:\n${link}\n`);
+    return;
+  }
+
   await resend.emails.send({
     from: FROM,
     to: email,

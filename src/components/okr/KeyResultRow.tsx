@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { IKeyResult, ConfidenceLevel } from '@/types';
+import type { IKeyResult, ConfidenceLevel, MetricType } from '@/types';
 import { ConfidenceBadge } from '@/components/ui/ScoreBadge';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { OwnerPicker } from '@/components/ui/OwnerPicker';
@@ -22,6 +22,26 @@ function computeKRScore(kr: IKeyResult): number | undefined {
 }
 
 const inputCls = 'w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700 dark:text-gray-100';
+
+const METRIC_TYPES: { value: MetricType; label: string }[] = [
+  { value: 'number',    label: '#'   },
+  { value: 'percent',   label: '%'   },
+  { value: 'currency',  label: '$'   },
+  { value: 'average',   label: 'avg' },
+  { value: 'ratio',     label: '×'   },
+  { value: 'milestone', label: '✓'   },
+];
+
+function formatValue(value: number | undefined, type: MetricType | undefined): string {
+  if (value == null) return '—';
+  switch (type) {
+    case 'percent':  return `${value}%`;
+    case 'currency': return `$${value.toLocaleString()}`;
+    case 'ratio':    return `${value}×`;
+    case 'milestone':return value >= 1 ? 'Done' : 'Not done';
+    default:         return value.toLocaleString();
+  }
+}
 
 export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowProps) {
   const [expanded, setExpanded] = useState(true);
@@ -107,15 +127,36 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Metric</label>
             {canEdit ? (
-              <input
-                type="text"
-                value={kr.metric ?? ''}
-                onChange={(e) => onChange({ metric: e.target.value })}
-                placeholder="e.g. Monthly active users"
-                className={inputCls}
-              />
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-1 flex-wrap">
+                  {METRIC_TYPES.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => onChange({ metricType: value })}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+                        kr.metricType === value
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={kr.metric ?? ''}
+                  onChange={(e) => onChange({ metric: e.target.value })}
+                  placeholder="Label (e.g. Monthly active users)"
+                  className={inputCls}
+                />
+              </div>
             ) : (
-              <p className="text-sm text-gray-700 dark:text-gray-300">{kr.metric ?? '—'}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {kr.metricType && <span className="font-medium mr-1">{METRIC_TYPES.find(m => m.value === kr.metricType)?.label}</span>}
+                {kr.metric ?? '—'}
+              </p>
             )}
           </div>
 
@@ -139,7 +180,7 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
                   className={inputCls}
                 />
               ) : (
-                <p className="text-sm text-gray-700 dark:text-gray-300">{kr[field] ?? '—'}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{formatValue(kr[field], kr.metricType)}</p>
               )}
             </div>
           ))}

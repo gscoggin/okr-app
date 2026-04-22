@@ -12,6 +12,7 @@ import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
 import { PresentationView } from '@/components/presentation/PresentationView';
 import { CreateQuarterlyPageView } from './CreateQuarterlyPageView';
 import { SharedObjectivesSection } from '@/components/okr/SharedObjectivesSection';
+import { ImportExportPanel } from '@/components/okr/ImportExportPanel';
 import { serializeOKRPageWithNested } from '@/lib/serializeOKR';
 import type { IOKRPage, Quarter } from '@/types';
 
@@ -87,9 +88,16 @@ export default async function QuarterlyOKRPage({ params, searchParams }: Props) 
 
   const baseHref = `/teams/${teamId}/${year}/${quarterSlug.toLowerCase()}`;
 
+  const toolbar = canEdit && (
+    <div className="flex justify-end px-4 sm:px-6 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <ImportExportPanel teamId={teamId} year={year} period={quarterSlug.toLowerCase()} teamName={team.name} />
+    </div>
+  );
+
   return (
     <div>
       {breadcrumb}
+      {toolbar}
       {editMode ? (
         <OKRPageEditor
           initialPage={serializedPage}

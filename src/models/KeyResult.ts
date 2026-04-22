@@ -1,10 +1,11 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
-import type { ConfidenceLevel, OKRStatus, OwnerRef } from '@/types';
+import type { ConfidenceLevel, MetricType, OKRStatus, OwnerRef } from '@/types';
 
 export interface KeyResultDocument extends Document {
   objectiveId: mongoose.Types.ObjectId;
   title: string;
   owners: OwnerRef[];
+  metricType?: MetricType;
   metric?: string;
   startValue?: number;
   targetValue?: number;
@@ -32,6 +33,7 @@ const KeyResultSchema = new Schema<KeyResultDocument>(
     objectiveId: { type: Schema.Types.ObjectId, ref: 'Objective', required: true },
     title: { type: String, default: '', trim: true, maxlength: 500 },
     owners: { type: [OwnerRefSchema], default: [] },
+    metricType: { type: String, enum: ['number', 'percent', 'currency', 'average', 'ratio', 'milestone'] },
     metric: { type: String, trim: true },
     startValue: { type: Number },
     targetValue: { type: Number },

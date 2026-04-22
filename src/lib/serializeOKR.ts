@@ -1,10 +1,11 @@
-import type { IOKRPage, IObjective, IKeyResult } from '@/types';
+import type { IOKRPage, IObjective, IKeyResult, MetricType } from '@/types';
 
 type RawKR = {
   _id: { toString(): string };
   objectiveId: { toString(): string };
   title: string;
   owners?: object[];
+  metricType?: string;
   metric?: string;
   startValue?: number;
   targetValue?: number;
@@ -50,6 +51,7 @@ export function serializeKR(kr: RawKR): IKeyResult {
     objectiveId: kr.objectiveId.toString(),
     title: kr.title,
     owners: (kr.owners ?? []) as IKeyResult['owners'],
+    metricType: kr.metricType as MetricType | undefined,
     metric: kr.metric,
     startValue: kr.startValue,
     targetValue: kr.targetValue,
