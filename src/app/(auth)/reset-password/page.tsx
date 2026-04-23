@@ -109,7 +109,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm p-8">
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Reset password</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Choose a new password for your account.</p>

@@ -9,13 +9,13 @@
   --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-body {
+html, body {
   background-color: #f9fafb;
   color: #111827;
   font-family: var(--font-sans);
 }
 
-.dark body {
+.dark html, .dark body {
   background-color: #030712;
   color: #f9fafb;
 }
