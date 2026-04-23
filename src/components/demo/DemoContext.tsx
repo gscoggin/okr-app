@@ -1,8 +1,11 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+
+const DemoTour = dynamic(() => import('./DemoTour').then((m) => ({ default: m.DemoTour })), { ssr: false });
 
 interface DemoContextValue {
   isDemo: boolean;
@@ -16,9 +19,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const isDemo = !!user?.isDemo;
   const [nudgeOpen, setNudgeOpen] = useState(false);
 
+  const startTour = () => {
+    const w = window as Window & { __startDemoTour?: () => void };
+    w.__startDemoTour?.();
+  };
+
   return (
     <DemoContext.Provider value={{ isDemo, triggerNudge: () => setNudgeOpen(true) }}>
-      {isDemo && <DemoBanner onRequestAccess={() => setNudgeOpen(true)} />}
+      {isDemo && <DemoBanner onRequestAccess={() => setNudgeOpen(true)} onTakeTour={startTour} />}
+      {isDemo && <DemoTour autoStart={true} />}
       {children}
       {nudgeOpen && <DemoNudgeModal onClose={() => setNudgeOpen(false)} />}
     </DemoContext.Provider>
@@ -31,10 +40,16 @@ export function useDemo() {
 
 // ── Banner ────────────────────────────────────────────────────────────────────
 
-function DemoBanner({ onRequestAccess }: { onRequestAccess: () => void }) {
+function DemoBanner({ onRequestAccess, onTakeTour }: { onRequestAccess: () => void; onTakeTour: () => void }) {
   return (
     <div className="w-full bg-indigo-600 text-white text-sm flex items-center justify-center gap-4 px-4 py-2 shrink-0">
       <span className="text-indigo-200">You&apos;re exploring a demo workspace.</span>
+      <button
+        onClick={onTakeTour}
+        className="font-medium text-white hover:text-indigo-100 underline underline-offset-2 transition"
+      >
+        Take the tour ▶
+      </button>
       <button
         onClick={onRequestAccess}
         className="font-medium text-white hover:text-indigo-100 underline underline-offset-2 transition"

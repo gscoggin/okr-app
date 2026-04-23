@@ -59,7 +59,7 @@ export default async function CompanyDashboard() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-8">
+      <div className="mb-8" data-tour="dashboard-header">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{tenant?.name ?? 'Company'} OKRs</h1>
         {tenant?.branding?.mission && (
           <p className="text-sm text-blue-600 mt-0.5 italic">{tenant.branding.mission}</p>
@@ -83,10 +83,10 @@ export default async function CompanyDashboard() {
         </div>
       )}
 
-      {orgs.map((org) => {
+      {orgs.map((org, orgIdx) => {
         const orgTeams = teams.filter((t) => t.orgId.toString() === org._id.toString() && !t.parentTeamId);
         return (
-          <section key={org._id.toString()} className="mb-10">
+          <section key={org._id.toString()} className="mb-10" {...(orgIdx === 0 ? { 'data-tour': 'org-section' } : {})}>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
               {org.iconUrl && (
                 <img src={org.iconUrl} alt="" className="w-6 h-6 rounded object-cover" />
@@ -95,10 +95,10 @@ export default async function CompanyDashboard() {
             </h2>
 
             <div className="space-y-2">
-              {orgTeams.map((team) => {
+              {orgTeams.map((team, teamIdx) => {
                 const teamPages = pages.filter((p) => p.teamId.toString() === team._id.toString());
                 return (
-                  <div key={team._id.toString()} className="border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 overflow-hidden">
+                  <div key={team._id.toString()} className="border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 overflow-hidden" {...(orgIdx === 0 && teamIdx === 0 ? { 'data-tour': 'team-row' } : {})}>
                     <div className="flex items-center px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                       <Link
                         href={`/teams/${team._id}`}
@@ -131,7 +131,7 @@ export default async function CompanyDashboard() {
                                 {pg.status}
                               </span>
                               <span className="text-sm text-gray-500 dark:text-gray-400">{objs.length} objective{objs.length !== 1 ? 's' : ''}</span>
-                              <div className="ml-auto">
+                              <div className="ml-auto" {...(orgIdx === 0 && teamIdx === 0 ? { 'data-tour': 'score-ring' } : {})}>
                                 <RingGauge score={score ?? null} size={40} />
                               </div>
                             </Link>
