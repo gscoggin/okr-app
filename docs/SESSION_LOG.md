@@ -2,6 +2,30 @@
 
 ---
 
+### 2026-04-22 — Invite code system (Phase 1) + test coverage
+
+**Status:** Phase 1 shipped, 98 tests passing, pushed to main.
+
+**Completed:**
+- `InviteCode` model (single-use, expiring, revocable 8-char codes)
+- `GET/POST /api/invite-codes` and `DELETE /api/invite-codes/[code]` (admin-only)
+- Register API migrated from env-var gate to DB-backed invite codes
+- Admin panel: generate, list, copy, revoke codes
+- Register page: invite code field with "Don't have one?" → `/request-access`
+- `register.test.ts` fully rewritten; `user.test.ts` updated to seed invite codes
+- UI: presentation view redesign, font upgrade to Plus Jakarta Sans, dark mode fixes
+
+**Next:**
+- Add coverage for `GET/POST /api/invite-codes` and `DELETE /api/invite-codes/[code]`
+- Demo Phase 2: request access form + email notification
+- Demo Phase 3–6: demo tenant, guided tour, analytics, demo branch
+
+**Backlog (testing infra):**
+- Move jest to `pre-push` hook, `tsc --noEmit` on `pre-commit` (currently jest runs on every commit ~16s)
+- GitHub Actions CI workflow (jest + tsc on every push)
+
+---
+
 ### 2026-04-20 — Security hardening, shared OKR alignment, password reset
 
 **Status:** All features working, 55 tests passing, pushed to GitHub. Ready to host.
