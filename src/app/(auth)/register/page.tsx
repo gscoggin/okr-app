@@ -77,17 +77,23 @@ export default function RegisterPage() {
           </div>
 
           <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Invite code
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Invite code
+              </label>
+              <Link href="/request-access" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                Don&apos;t have one?
+              </Link>
+            </div>
             <input
               id="inviteCode"
               type="text"
               required
               value={form.inviteCode}
-              onChange={set('inviteCode')}
-              placeholder="Enter your invite code"
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setForm((f) => ({ ...f, inviteCode: e.target.value.toUpperCase() }))}
+              placeholder="e.g. XK4T9WPQ"
+              autoComplete="off"
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono tracking-widest"
             />
           </div>
 

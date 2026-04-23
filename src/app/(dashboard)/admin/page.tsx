@@ -82,6 +82,16 @@ export default function AdminPage() {
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState('');
 
+  // Invite codes
+  const [inviteCodes, setInviteCodes] = useState<Array<{
+    _id: string; code: string; note: string | null;
+    status: string; expiresAt: string; usedAt: string | null; createdAt: string;
+  }>>([]);
+  const [newCodeNote, setNewCodeNote] = useState('');
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [newlyGeneratedCode, setNewlyGeneratedCode] = useState('');
+  const [copiedCode, setCopiedCode] = useState('');
+
   // Danger zone — reset OKR data
   const [resetStep, setResetStep] = useState<'idle' | 'creds' | 'confirm'>('idle');
   const [resetEmail, setResetEmail] = useState('');
@@ -96,6 +106,39 @@ export default function AdminPage() {
   useEffect(() => {
     if (user && !isAdmin) router.replace('/');
   }, [user, isAdmin, router]);
+
+  const loadInviteCodes = useCallback(async () => {
+    const res = await fetch('/api/invite-codes');
+    if (res.ok) setInviteCodes((await res.json()).data ?? []);
+  }, []);
+
+  const generateInviteCode = async () => {
+    setGeneratingCode(true);
+    setNewlyGeneratedCode('');
+    const res = await fetch('/api/invite-codes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: newCodeNote.trim() || undefined }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      setNewlyGeneratedCode(json.data.code);
+      setNewCodeNote('');
+      await loadInviteCodes();
+    }
+    setGeneratingCode(false);
+  };
+
+  const revokeInviteCode = async (code: string) => {
+    const res = await fetch(`/api/invite-codes/${code}`, { method: 'DELETE' });
+    if (res.ok) await loadInviteCodes();
+  };
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(''), 2000);
+  };
 
   const loadArchives = useCallback(async () => {
     const res = await fetch('/api/archives');
@@ -117,11 +160,11 @@ export default function AdminPage() {
       if (orgsRes.ok) setOrgs((await orgsRes.json()).data ?? []);
       if (teamsRes.ok) setTeams((await teamsRes.json()).data ?? []);
       if (usersRes.ok) setUsers((await usersRes.json()).data ?? []);
-      await Promise.all([loadArchives(), loadYears()]);
+      await Promise.all([loadArchives(), loadYears(), loadInviteCodes()]);
       setLoading(false);
     }
     load();
-  }, [loadArchives, loadYears]);
+  }, [loadArchives, loadYears, loadInviteCodes]);
 
   // Auto-archive years older than AUTO_ARCHIVE_AGE
   useEffect(() => {
@@ -800,6 +843,97 @@ export default function AdminPage() {
                 {createSaving ? 'Adding…' : 'Add User'}
               </button>
             </form>
+          </section>
+
+          {/* ── Invite Codes ─────────────────────────────────────────────────── */}
+          <section>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Invite Codes</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+              Each code is single-use and expires 7 days after generation.
+            </p>
+
+            {/* Generate form */}
+            <div className="flex gap-3 mb-4">
+              <input
+                type="text"
+                placeholder="Note (optional — e.g. who it's for)"
+                value={newCodeNote}
+                onChange={(e) => setNewCodeNote(e.target.value)}
+                className="flex-1 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={generateInviteCode}
+                disabled={generatingCode}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition shrink-0"
+              >
+                {generatingCode ? 'Generating…' : 'Generate code'}
+              </button>
+            </div>
+
+            {/* Newly generated code highlight */}
+            {newlyGeneratedCode && (
+              <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                <span className="font-mono text-lg font-bold tracking-widest text-green-800 dark:text-green-300">{newlyGeneratedCode}</span>
+                <button
+                  onClick={() => copyCode(newlyGeneratedCode)}
+                  className="ml-auto text-xs font-medium text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 transition"
+                >
+                  {copiedCode === newlyGeneratedCode ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            )}
+
+            {/* Code list */}
+            {inviteCodes.length > 0 && (
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                {inviteCodes.map((c) => (
+                  <li key={c._id} className="px-4 py-3 bg-white dark:bg-gray-800 flex items-center gap-3">
+                    <span className={`font-mono text-sm font-semibold tracking-widest shrink-0 ${
+                      c.status === 'active' ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 line-through'
+                    }`}>
+                      {c.code}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                      c.status === 'active'  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                      c.status === 'used'    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                      c.status === 'revoked' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                                               'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    }`}>
+                      {c.status}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      {c.note && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.note}</p>}
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {c.status === 'used'
+                          ? `Used ${new Date(c.usedAt!).toLocaleDateString()}`
+                          : `Expires ${new Date(c.expiresAt).toLocaleDateString()}`}
+                      </p>
+                    </div>
+                    {c.status === 'active' && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => copyCode(c.code)}
+                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition font-medium"
+                        >
+                          {copiedCode === c.code ? 'Copied!' : 'Copy'}
+                        </button>
+                        <button
+                          onClick={() => revokeInviteCode(c.code)}
+                          className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition"
+                          title="Revoke code"
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {inviteCodes.length === 0 && (
+              <p className="text-sm text-gray-400 dark:text-gray-500">No codes generated yet.</p>
+            )}
           </section>
 
           {/* ── Archive Years ─────────────────────────────────────────────────── */}

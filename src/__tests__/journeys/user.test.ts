@@ -15,6 +15,7 @@
  *   11. Member of a team cannot edit that team's OKR page (read-only role)
  *   12. Me endpoint returns the authenticated user's profile
  */
+import mongoose from 'mongoose';
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
 import { req, json } from '../helpers/request';
 import {
@@ -26,6 +27,15 @@ import {
   createOKRPage,
   createObjective,
 } from '../helpers/fixtures';
+import InviteCode from '@/models/InviteCode';
+
+async function makeCode(code = 'TESTCODE') {
+  return InviteCode.create({
+    code,
+    createdBy: new mongoose.Types.ObjectId(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
+}
 
 import { POST as register } from '@/app/api/auth/register/route';
 import { POST as login } from '@/app/api/auth/login/route';
@@ -41,9 +51,10 @@ beforeEach(() => clearTestDB());
 // ── 1. Register a new workspace ───────────────────────────────────────────────
 
 it('registers a new workspace and returns a tenant_owner user', async () => {
+  await makeCode();
   const res = await register(
     req('POST', '/api/auth/register', {
-      body: { name: 'Alice Chen', email: 'alice@test.com', password: 'password123', companyName: 'Acme Corp' },
+      body: { name: 'Alice Chen', email: 'alice@test.com', password: 'password123', companyName: 'Acme Corp', inviteCode: 'TESTCODE' },
     })
   );
   expect(res.status).toBe(201);
@@ -56,9 +67,10 @@ it('registers a new workspace and returns a tenant_owner user', async () => {
 // ── 2. Registration requires company name ─────────────────────────────────────
 
 it('registration is rejected without a company name', async () => {
+  await makeCode();
   const res = await register(
     req('POST', '/api/auth/register', {
-      body: { name: 'Bob', email: 'bob@test.com', password: 'password123' },
+      body: { name: 'Bob', email: 'bob@test.com', password: 'password123', inviteCode: 'TESTCODE' },
     })
   );
   expect(res.status).toBe(400);
@@ -67,11 +79,13 @@ it('registration is rejected without a company name', async () => {
 // ── 3. Duplicate email rejected ───────────────────────────────────────────────
 
 it('duplicate email registration is rejected', async () => {
+  await makeCode('TESTCODE1');
+  await makeCode('TESTCODE2');
   await register(req('POST', '/api/auth/register', {
-    body: { name: 'Alice', email: 'alice@test.com', password: 'password123', companyName: 'Acme' },
+    body: { name: 'Alice', email: 'alice@test.com', password: 'password123', companyName: 'Acme', inviteCode: 'TESTCODE1' },
   }));
   const res = await register(req('POST', '/api/auth/register', {
-    body: { name: 'Alice Again', email: 'alice@test.com', password: 'password456', companyName: 'Other Co' },
+    body: { name: 'Alice Again', email: 'alice@test.com', password: 'password456', companyName: 'Other Co', inviteCode: 'TESTCODE2' },
   }));
   expect(res.status).toBe(409);
 });

@@ -4,17 +4,21 @@ import { connectDB } from '@/lib/mongodb';
 import { ok, err, slugify } from '@/lib/apiUtils';
 import User from '@/models/User';
 import Tenant from '@/models/Tenant';
+import InviteCode from '@/models/InviteCode';
 
 export async function POST(req: NextRequest) {
   const { name, email, password, companyName, inviteCode } = await req.json();
 
-  // If REGISTRATION_CODE is set, enforce it
-  const requiredCode = process.env.REGISTRATION_CODE;
-  if (requiredCode) {
-    if (!inviteCode || inviteCode.trim() !== requiredCode.trim()) {
-      return err('Invalid invite code', 403);
-    }
-  }
+  if (!inviteCode?.trim()) return err('An invite code is required', 403);
+
+  await connectDB();
+
+  const codeDoc = await InviteCode.findOne({ code: inviteCode.trim().toUpperCase() });
+
+  if (!codeDoc)                         return err('Invite code not found', 403);
+  if (codeDoc.usedAt)                   return err('This invite code has already been used', 403);
+  if (codeDoc.revokedAt)                return err('This invite code has been revoked', 403);
+  if (codeDoc.expiresAt < new Date())   return err('This invite code has expired', 403);
 
   if (!name || !email || !password) return err('Name, email and password are required');
   if (!companyName) return err('Company name is required');
@@ -53,6 +57,11 @@ export async function POST(req: NextRequest) {
 
   // Point tenant.ownerId at the real user
   await Tenant.findByIdAndUpdate(tenant._id, { ownerId: user._id });
+
+  // Consume the invite code
+  codeDoc.usedBy = user._id;
+  codeDoc.usedAt = new Date();
+  await codeDoc.save();
 
   return ok(
     {
