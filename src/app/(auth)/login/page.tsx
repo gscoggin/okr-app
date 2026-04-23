@@ -87,6 +87,18 @@ export default function LoginPage() {
             Create a workspace
           </Link>
         </p>
+
+        {process.env.NEXT_PUBLIC_DEMO_URL && (
+          <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-3">
+            or{' '}
+            <a
+              href={`${process.env.NEXT_PUBLIC_DEMO_URL}/demo`}
+              className="text-blue-600 hover:underline font-medium"
+            >
+              explore the demo
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );
