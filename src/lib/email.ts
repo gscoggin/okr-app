@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? '');
-
 const FROM = process.env.EMAIL_FROM ?? 'OKRs <noreply@yourdomain.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
@@ -13,6 +11,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return;
   }
 
+  const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
     from: FROM,
     to: email,

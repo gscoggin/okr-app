@@ -4,8 +4,6 @@ import { connectDB } from '@/lib/mongodb';
 import { ok, err } from '@/lib/apiUtils';
 import AccessRequest from '@/models/AccessRequest';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
 
@@ -29,6 +27,7 @@ export async function POST(req: NextRequest) {
   // Notify admin — fire-and-forget, don't fail the request if email errors
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (adminEmail && process.env.RESEND_API_KEY) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     resend.emails.send({
       from:    'OKR App <notifications@resend.dev>',
       to:      adminEmail,
