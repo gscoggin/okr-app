@@ -82,6 +82,14 @@ export default function AdminPage() {
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState('');
 
+  // Access requests
+  const [accessRequests, setAccessRequests] = useState<Array<{
+    _id: string; name: string; email: string; useCase: string | null;
+    status: 'pending' | 'approved' | 'declined'; createdAt: string;
+  }>>([]);
+  const [accessRequestsFilter, setAccessRequestsFilter] = useState<'pending' | 'all'>('pending');
+  const [codeCopiedFor, setCodeCopiedFor] = useState('');
+
   // Invite codes
   const [inviteCodes, setInviteCodes] = useState<Array<{
     _id: string; code: string; note: string | null;
@@ -106,6 +114,42 @@ export default function AdminPage() {
   useEffect(() => {
     if (user && !isAdmin) router.replace('/');
   }, [user, isAdmin, router]);
+
+  const loadAccessRequests = useCallback(async () => {
+    const res = await fetch('/api/demo/access-requests');
+    if (res.ok) setAccessRequests((await res.json()).data ?? []);
+  }, []);
+
+  const generateCodeForRequest = async (requestId: string, name: string) => {
+    const codeRes = await fetch('/api/invite-codes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: name }),
+    });
+    if (!codeRes.ok) return;
+    const { data } = await codeRes.json();
+    navigator.clipboard.writeText(data.code);
+    setCodeCopiedFor(requestId);
+    setTimeout(() => setCodeCopiedFor(''), 2000);
+    await Promise.all([
+      fetch(`/api/demo/access-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved' }),
+      }),
+      loadAccessRequests(),
+      loadInviteCodes(),
+    ]);
+  };
+
+  const declineRequest = async (requestId: string) => {
+    await fetch(`/api/demo/access-requests/${requestId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'declined' }),
+    });
+    await loadAccessRequests();
+  };
 
   const loadInviteCodes = useCallback(async () => {
     const res = await fetch('/api/invite-codes');
@@ -160,11 +204,11 @@ export default function AdminPage() {
       if (orgsRes.ok) setOrgs((await orgsRes.json()).data ?? []);
       if (teamsRes.ok) setTeams((await teamsRes.json()).data ?? []);
       if (usersRes.ok) setUsers((await usersRes.json()).data ?? []);
-      await Promise.all([loadArchives(), loadYears(), loadInviteCodes()]);
+      await Promise.all([loadArchives(), loadYears(), loadInviteCodes(), loadAccessRequests()]);
       setLoading(false);
     }
     load();
-  }, [loadArchives, loadYears, loadInviteCodes]);
+  }, [loadArchives, loadYears, loadInviteCodes, loadAccessRequests]);
 
   // Auto-archive years older than AUTO_ARCHIVE_AGE
   useEffect(() => {
@@ -843,6 +887,92 @@ export default function AdminPage() {
                 {createSaving ? 'Adding…' : 'Add User'}
               </button>
             </form>
+          </section>
+
+          {/* ── Access Requests ──────────────────────────────────────────────── */}
+          <section>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Access Requests</h2>
+              <div className="flex gap-1 text-xs">
+                {(['pending', 'all'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setAccessRequestsFilter(f)}
+                    className={`px-2.5 py-1 rounded-lg capitalize transition ${
+                      accessRequestsFilter === f
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-medium'
+                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+              Generate a code for a request to approve it — code is copied to your clipboard automatically.
+            </p>
+
+            {(() => {
+              const filtered = accessRequests.filter(
+                (r) => accessRequestsFilter === 'all' || r.status === 'pending'
+              );
+              if (filtered.length === 0) {
+                return (
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    {accessRequestsFilter === 'pending' ? 'No pending requests.' : 'No requests yet.'}
+                  </p>
+                );
+              }
+              return (
+                <ul className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                  {filtered.map((r) => (
+                    <li key={r._id} className="px-4 py-3 bg-white dark:bg-gray-800 flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-sm font-semibold uppercase shrink-0 mt-0.5">
+                        {r.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{r.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{r.email}</p>
+                        {r.useCase && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">&ldquo;{r.useCase}&rdquo;</p>
+                        )}
+                        <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">
+                          {new Date(r.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                        {r.status !== 'pending' ? (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            r.status === 'approved'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                          }`}>
+                            {r.status}
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => generateCodeForRequest(r._id, r.name)}
+                              className="text-xs font-medium px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                            >
+                              {codeCopiedFor === r._id ? 'Copied!' : 'Generate & copy code'}
+                            </button>
+                            <button
+                              onClick={() => declineRequest(r._id)}
+                              className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition"
+                              title="Decline"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
           </section>
 
           {/* ── Invite Codes ─────────────────────────────────────────────────── */}
