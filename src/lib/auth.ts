@@ -16,6 +16,7 @@ import { cookies } from 'next/headers';
 import type { AuthPayload } from '@/types';
 
 const JWT_EXPIRES_IN = '7d';
+const DEMO_JWT_EXPIRES_IN = '2h';
 export const AUTH_COOKIE = 'okr_token';
 
 function getJwtSecret(): string {
@@ -26,6 +27,10 @@ function getJwtSecret(): string {
 
 export function signToken(payload: AuthPayload): string {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: JWT_EXPIRES_IN });
+}
+
+export function signDemoToken(payload: Omit<AuthPayload, 'isDemo'>): string {
+  return jwt.sign({ ...payload, isDemo: true }, getJwtSecret(), { expiresIn: DEMO_JWT_EXPIRES_IN });
 }
 
 export function verifyToken(token: string): AuthPayload | null {

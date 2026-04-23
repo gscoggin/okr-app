@@ -100,6 +100,10 @@ export default function AdminPage() {
   const [newlyGeneratedCode, setNewlyGeneratedCode] = useState('');
   const [copiedCode, setCopiedCode] = useState('');
 
+  // Demo seed
+  const [seedWorking, setSeedWorking] = useState(false);
+  const [seedResult, setSeedResult] = useState<'done' | 'error' | null>(null);
+
   // Danger zone — reset OKR data
   const [resetStep, setResetStep] = useState<'idle' | 'creds' | 'confirm'>('idle');
   const [resetEmail, setResetEmail] = useState('');
@@ -448,6 +452,16 @@ export default function AdminPage() {
       const json = await res.json();
       setUsers((prev) => prev.map((u) => u._id === userId ? { ...u, role: json.data.role } : u));
     }
+  };
+
+  // ── Demo seed ───────────────────────────────────────────────────────────────
+
+  const runDemoSeed = async () => {
+    setSeedWorking(true);
+    setSeedResult(null);
+    const res = await fetch('/api/demo/seed', { method: 'POST' });
+    setSeedResult(res.ok ? 'done' : 'error');
+    setSeedWorking(false);
   };
 
   // ── Reset OKR data ──────────────────────────────────────────────────────────
@@ -1173,6 +1187,35 @@ export default function AdminPage() {
                   </li>
                 ))}
               </ul>
+            )}
+          </section>
+
+          {/* ── Demo Data ────────────────────────────────────────────────────── */}
+          <section>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Demo Data</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+              Refreshes the demo tenant with period-aware seed data. Safe to run multiple times — existing demo OKR data is replaced.
+            </p>
+            <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Refresh demo workspace</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Seeds 2 orgs, 5 teams, and OKR pages for the current year and quarter.
+                </p>
+              </div>
+              <button
+                onClick={runDemoSeed}
+                disabled={seedWorking}
+                className="shrink-0 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition"
+              >
+                {seedWorking ? 'Seeding…' : 'Refresh demo data'}
+              </button>
+            </div>
+            {seedResult === 'done' && (
+              <p className="text-xs text-green-700 dark:text-green-400 mt-2">Demo data refreshed successfully.</p>
+            )}
+            {seedResult === 'error' && (
+              <p className="text-xs text-red-500 mt-2">Seed failed — check server logs.</p>
             )}
           </section>
 

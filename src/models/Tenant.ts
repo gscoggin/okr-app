@@ -12,6 +12,7 @@ export interface TenantDocument extends Document {
   ownerId: mongoose.Types.ObjectId;
   branding: TenantBranding;
   guidePage?: string; // markdown
+  isDemo?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,7 @@ const TenantSchema = new Schema<TenantDocument>(
       primaryColor: { type: String },
     },
     guidePage: { type: String },
+    isDemo: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

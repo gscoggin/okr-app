@@ -6,6 +6,7 @@ import type { IOKRPage, IObjective, IKeyResult } from '@/types';
 import { computePageScore } from '@/types';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { PeriodNav } from '@/components/nav/PeriodNav';
+import { useDemo } from '@/components/demo/DemoContext';
 
 // ── Small owner avatar cluster ────────────────────────────────────────────────
 
@@ -217,6 +218,7 @@ interface PresentationViewProps {
 
 export function PresentationView({ page, teamName, teamIconUrl, editHref, teamId }: PresentationViewProps) {
   const pageScore = computePageScore(page.objectives);
+  const { isDemo, triggerNudge } = useDemo();
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -256,12 +258,21 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref, teamId
             </span>
             {editHref && (
               <div>
-                <Link
-                  href={editHref}
-                  className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition inline-block"
-                >
-                  Edit
-                </Link>
+                {isDemo ? (
+                  <button
+                    onClick={triggerNudge}
+                    className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <Link
+                    href={editHref}
+                    className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition inline-block"
+                  >
+                    Edit
+                  </Link>
+                )}
               </div>
             )}
           </div>

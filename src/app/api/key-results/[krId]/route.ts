@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import { requireAuth, ok, err } from '@/lib/apiUtils';
+import { requireAuth, ok, err, rejectIfDemo } from '@/lib/apiUtils';
 import KeyResult from '@/models/KeyResult';
 import Objective from '@/models/Objective';
 import OKRPage from '@/models/OKRPage';
@@ -13,6 +13,7 @@ export async function PATCH(
 ) {
   const user = requireAuth(req);
   if (!user) return err('Unauthorized', 401);
+  const demoErr = rejectIfDemo(user); if (demoErr) return demoErr;
 
   const { krId } = await params;
   await connectDB();
@@ -42,6 +43,7 @@ export async function DELETE(
 ) {
   const user = requireAuth(req);
   if (!user) return err('Unauthorized', 401);
+  const demoErr = rejectIfDemo(user); if (demoErr) return demoErr;
 
   const { krId } = await params;
   await connectDB();

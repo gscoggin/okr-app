@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import { requireAuth, ok, err } from '@/lib/apiUtils';
+import { requireAuth, ok, err, rejectIfDemo } from '@/lib/apiUtils';
 import { isAdmin, isTeamOwner } from '@/lib/auth';
 import OKRPage from '@/models/OKRPage';
 import Objective from '@/models/Objective';
@@ -54,6 +54,7 @@ export async function PATCH(
 ) {
   const user = requireAuth(req);
   if (!user) return err('Unauthorized', 401);
+  const demoErr = rejectIfDemo(user); if (demoErr) return demoErr;
 
   const { pageId } = await params;
   await connectDB();

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { Topbar } from '@/components/nav/Topbar';
 import { Sidebar } from '@/components/nav/Sidebar';
+import { DemoProvider } from '@/components/demo/DemoContext';
 import { connectDB } from '@/lib/mongodb';
 import { getCurrentUser } from '@/lib/auth';
 import Org from '@/models/Org';
@@ -86,19 +87,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { orgs, teams, teamSummaries, branding, tenantName } = await getData(tenantId);
 
   return (
-    <div className="flex flex-col h-screen">
-      <Topbar />
-      <div className="flex flex-1 min-h-0">
-        <Sidebar
-          orgs={orgs}
-          teams={teams}
-          teamSummaries={teamSummaries}
-          branding={branding}
-          tenantName={tenantName}
-          isAdmin={isAdmin}
-        />
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">{children}</main>
+    <DemoProvider>
+      <div className="flex flex-col h-screen">
+        <Topbar />
+        <div className="flex flex-1 min-h-0">
+          <Sidebar
+            orgs={orgs}
+            teams={teams}
+            teamSummaries={teamSummaries}
+            branding={branding}
+            tenantName={tenantName}
+            isAdmin={isAdmin}
+          />
+          <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">{children}</main>
+        </div>
       </div>
-    </div>
+    </DemoProvider>
   );
 }

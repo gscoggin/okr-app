@@ -174,6 +174,7 @@ export interface AuthPayload {
   email: string;
   role: UserRole;
   teamMemberships: { teamId: string; role: TeamRole }[];
+  isDemo?: boolean;
 }
 
 export interface LoginRequest {

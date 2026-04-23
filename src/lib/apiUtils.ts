@@ -10,6 +10,12 @@ export function err(message: string, status = 400): NextResponse<ApiResponse<nev
   return NextResponse.json({ error: message }, { status });
 }
 
+/** Returns a 403 response if the user is a demo session, otherwise null */
+export function rejectIfDemo(user: AuthPayload | null): NextResponse<ApiResponse<never>> | null {
+  if (user?.isDemo) return NextResponse.json({ error: 'Not available in demo mode' }, { status: 403 });
+  return null;
+}
+
 /** Extract and verify the JWT from the incoming request */
 export function requireAuth(req: NextRequest): AuthPayload | null {
   const cookieHeader = req.headers.get('cookie');
