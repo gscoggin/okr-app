@@ -2,6 +2,60 @@
 
 ---
 
+### 2026-04-24 — Demo deployment fully working
+
+**Status:** Demo is live and working end-to-end.
+
+**Completed:**
+- Fixed demo loop: unauthenticated visitors on demo are redirected to `/demo` via `proxy.ts`
+- Fixed logout on demo: redirects to `/demo` instead of `/login`
+- Auto-seed on first visit to `/demo` — no manual seeding needed after deploys
+- `proxy.ts` now handles both prod (redirect to `/login`) and demo (redirect to `/demo`) flows
+- "Explore the demo" link on prod login page working correctly
+- Full flow tested: new visitor → sign out → revisit → works
+
+**Next session:**
+- Pick up P1 roadmap items (batch import/export or OKR alignment tree)
+- Or tackle AI features (stubs in place, need ANTHROPIC_API_KEY)
+
+---
+
+### 2026-04-23 — Demo deployment + Vercel setup
+
+**Status:** Demo almost working. One remaining issue: Vercel Authentication blocking incognito users on demo project.
+
+**Completed:**
+- Fixed `email.ts` and `request-access/route.ts` to lazy-init Resend (was crashing build without API key)
+- Fixed `IS_DEMO_DEPLOYMENT` env var typo in Vercel demo project
+- Set all env vars on demo Vercel project (MONGODB_URI with `/okr-demo`, IS_DEMO_DEPLOYMENT=true, JWT_SECRET) scoped to both Production and Preview
+- Promoted demo branch deployment to Production in demo Vercel project
+- Seeded demo database by registering admin account on demo deployment and running "Refresh demo data"
+- Confirmed `/api/demo/session` returns `{"ok":true}` and demo dashboard loads when visiting directly
+- Added "explore the demo" link to production login page, gated by `NEXT_PUBLIC_DEMO_URL` env var
+- Set `NEXT_PUBLIC_DEMO_URL=https://okr-app-demo-git-demo-gscoggins-projects.vercel.app` on production Vercel project
+- Disabled Vercel Authentication on **production** Vercel project
+
+**The one remaining bug:**
+- Clicking "explore the demo" from production login page redirects to `/login` instead of the demo dashboard
+- Root cause: **demo Vercel project still has Vercel Authentication enabled** — it blocks incognito users before they even reach `/demo`
+- Fix: go to demo Vercel project → Settings → Deployment Protection → disable Vercel Authentication
+
+**What we learned about the setup:**
+- Two Vercel projects: one for `main` (prod), one for `demo` branch
+- Demo project env vars must be scoped to both Production AND Preview (not just Preview)
+- `NEXT_PUBLIC_` vars are baked in at build time — adding them requires a redeploy to take effect
+- Vercel Authentication is per-project and must be disabled separately on each project
+- Demo database: same Atlas cluster, different database name (`/okr-demo` vs `/okr-app` in URI)
+- Demo URL: `https://okr-app-demo-git-demo-gscoggins-projects.vercel.app`
+- Production URL: TBD (wherever prod is deployed)
+
+**Next session — first thing to do:**
+1. Disable Vercel Authentication on the demo Vercel project (Settings → Deployment Protection)
+2. Test "explore the demo" link from production login page in incognito
+3. If working, update SESSION_LOG roadmap and decide what to build next
+
+---
+
 ### 2026-04-22 — Invite code system (Phase 1) + test coverage
 
 **Status:** Phase 1 shipped, 98 tests passing, pushed to main.
