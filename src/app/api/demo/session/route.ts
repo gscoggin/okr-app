@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { signDemoToken, AUTH_COOKIE } from '@/lib/auth';
 import { err } from '@/lib/apiUtils';
+import { seedDemo } from '@/lib/demoSeed';
 import Tenant from '@/models/Tenant';
 import User from '@/models/User';
 
@@ -35,11 +36,15 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
 
-  const tenant = await Tenant.findOne({ slug: DEMO_SLUG, isDemo: true }).lean();
-  if (!tenant) return err('Demo not seeded', 503);
+  let tenant = await Tenant.findOne({ slug: DEMO_SLUG, isDemo: true }).lean();
+  if (!tenant) {
+    await seedDemo();
+    tenant = await Tenant.findOne({ slug: DEMO_SLUG, isDemo: true }).lean();
+  }
+  if (!tenant) return err('Demo seed failed', 503);
 
   const user = await User.findOne({ email: DEMO_EMAIL, tenantId: tenant._id }).lean();
-  if (!user) return err('Demo not seeded', 503);
+  if (!user) return err('Demo seed failed', 503);
 
   const token = signDemoToken({
     userId: user._id.toString(),
