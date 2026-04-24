@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
@@ -8,6 +8,12 @@ import { useAuth } from '@/components/AuthProvider';
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_IS_DEMO_DEPLOYMENT === 'true') {
+      window.location.href = '/demo';
+    }
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
