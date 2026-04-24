@@ -25,7 +25,11 @@ export function Topbar() {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+    if (process.env.NEXT_PUBLIC_IS_DEMO_DEPLOYMENT === 'true') {
+      window.location.href = '/demo';
+    } else {
+      router.push('/login');
+    }
   };
 
   return (
