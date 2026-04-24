@@ -21,15 +21,47 @@ export async function POST(req: NextRequest) {
   if (codeDoc.expiresAt < new Date())   return err('This invite code has expired', 403);
 
   if (!name || !email || !password) return err('Name, email and password are required');
-  if (!companyName) return err('Company name is required');
   if (password.length < 8) return err('Password must be at least 8 characters');
-
-  await connectDB();
 
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) return err('Email already in use', 409);
 
-  // Create tenant first
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  if (codeDoc.type === 'workspace_join') {
+    if (!codeDoc.tenantId) return err('Invalid invite code configuration', 500);
+
+    const tenant = await Tenant.findById(codeDoc.tenantId).lean();
+    if (!tenant) return err('Workspace not found', 404);
+
+    const user = await User.create({
+      tenantId: tenant._id,
+      name,
+      email,
+      passwordHash,
+      role: 'member',
+    });
+
+    codeDoc.usedBy = user._id;
+    codeDoc.usedAt = new Date();
+    await codeDoc.save();
+
+    return ok(
+      {
+        _id:        user._id.toString(),
+        name:       user.name,
+        email:      user.email,
+        role:       user.role,
+        tenantId:   tenant._id.toString(),
+        tenantName: tenant.name,
+      },
+      201
+    );
+  }
+
+  // workspace_create — new tenant + tenant_owner
+  if (!companyName) return err('Company name is required');
+
   const baseSlug = slugify(companyName);
   let slug = baseSlug;
   let attempt = 1;
@@ -37,13 +69,11 @@ export async function POST(req: NextRequest) {
     slug = `${baseSlug}-${++attempt}`;
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  // Use a placeholder ownerId, then update after user creation
+  const { default: mongoose } = await import('mongoose');
   const tenant = await Tenant.create({
     name: companyName,
     slug,
-    ownerId: new (await import('mongoose')).default.Types.ObjectId(),
+    ownerId: new mongoose.Types.ObjectId(),
     branding: {},
   });
 
@@ -55,21 +85,19 @@ export async function POST(req: NextRequest) {
     role: 'tenant_owner',
   });
 
-  // Point tenant.ownerId at the real user
   await Tenant.findByIdAndUpdate(tenant._id, { ownerId: user._id });
 
-  // Consume the invite code
   codeDoc.usedBy = user._id;
   codeDoc.usedAt = new Date();
   await codeDoc.save();
 
   return ok(
     {
-      _id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      tenantId: tenant._id.toString(),
+      _id:        user._id.toString(),
+      name:       user.name,
+      email:      user.email,
+      role:       user.role,
+      tenantId:   tenant._id.toString(),
       tenantName: tenant.name,
     },
     201

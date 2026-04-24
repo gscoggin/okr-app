@@ -2,7 +2,9 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface InviteCodeDocument extends Document {
   code: string;
+  type: 'workspace_create' | 'workspace_join';
   createdBy: mongoose.Types.ObjectId;
+  tenantId?: mongoose.Types.ObjectId;
   note?: string;
   expiresAt: Date;
   usedBy?: mongoose.Types.ObjectId;
@@ -15,7 +17,9 @@ export interface InviteCodeDocument extends Document {
 const InviteCodeSchema = new Schema<InviteCodeDocument>(
   {
     code:      { type: String, required: true, unique: true, uppercase: true, trim: true },
+    type:      { type: String, enum: ['workspace_create', 'workspace_join'], default: 'workspace_create' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    tenantId:  { type: Schema.Types.ObjectId, ref: 'Tenant' },
     note:      { type: String },
     expiresAt: { type: Date, required: true },
     usedBy:    { type: Schema.Types.ObjectId, ref: 'User' },

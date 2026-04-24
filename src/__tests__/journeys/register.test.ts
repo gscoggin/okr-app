@@ -2,15 +2,19 @@
  * Registration journeys
  *
  * Covered:
- *   1. Successful registration creates user, tenant, and consumes invite code
- *   2. Duplicate email returns 409
- *   3. Missing required fields return 400
- *   4. Short password returns 400
- *   5. No invite code supplied returns 403
- *   6. Non-existent code returns 403
- *   7. Already-used code returns 403
- *   8. Expired code returns 403
- *   9. Revoked code returns 403
+ *   1.  workspace_create code: registers user, creates tenant, consumes code
+ *   2.  workspace_join code: adds user as member to existing tenant, consumes code
+ *   3.  workspace_join code: companyName is ignored
+ *   4.  workspace_join code: returns 404 if tenantId points to missing tenant
+ *   5.  Duplicate email returns 409
+ *   6.  Missing name/email/password returns 400
+ *   7.  workspace_create code: missing companyName returns 400
+ *   8.  Short password returns 400
+ *   9.  No invite code supplied returns 403
+ *   10. Non-existent code returns 403
+ *   11. Already-used code returns 403
+ *   12. Expired code returns 403
+ *   13. Revoked code returns 403
  */
 import mongoose from 'mongoose';
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
@@ -32,21 +36,31 @@ const validBody = {
   companyName: 'Acme Corp',
 };
 
-// Helper — creates a valid invite code in the DB
-async function makeCode(overrides: Partial<{ usedAt: Date; revokedAt: Date; expiresAt: Date }> = {}) {
-  const expiresAt = overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+async function makeCreateCode(overrides: Partial<{ usedAt: Date; revokedAt: Date; expiresAt: Date }> = {}) {
   return InviteCode.create({
     code: 'TESTCODE',
+    type: 'workspace_create',
     createdBy: new mongoose.Types.ObjectId(),
-    expiresAt,
+    expiresAt: overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     ...overrides,
   });
 }
 
-// ── 1. Successful registration ────────────────────────────────────────────────
+async function makeJoinCode(tenantId: mongoose.Types.ObjectId, overrides: Partial<{ usedAt: Date; revokedAt: Date; expiresAt: Date }> = {}) {
+  return InviteCode.create({
+    code: 'JOINCODE',
+    type: 'workspace_join',
+    createdBy: new mongoose.Types.ObjectId(),
+    tenantId,
+    expiresAt: overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    ...overrides,
+  });
+}
 
-it('registers a new user, creates a tenant, and consumes the invite code', async () => {
-  await makeCode();
+// ── 1. workspace_create: new tenant + tenant_owner ────────────────────────────
+
+it('workspace_create code registers user, creates tenant, and consumes code', async () => {
+  await makeCreateCode();
   const res = await register(req('POST', '/api/auth/register', { body: { ...validBody, inviteCode: 'TESTCODE' } }));
   expect(res.status).toBe(201);
 
@@ -63,12 +77,70 @@ it('registers a new user, creates a tenant, and consumes the invite code', async
   expect(code?.usedBy).toBeDefined();
 });
 
-// ── 2. Duplicate email ────────────────────────────────────────────────────────
+// ── 2. workspace_join: adds member to existing tenant ────────────────────────
+
+it('workspace_join code adds user as member to existing tenant', async () => {
+  const tenant = await Tenant.create({
+    name: 'Join Corp',
+    slug: 'join-corp',
+    ownerId: new mongoose.Types.ObjectId(),
+    branding: {},
+  });
+  await makeJoinCode(tenant._id);
+
+  const res = await register(req('POST', '/api/auth/register', {
+    body: { name: 'Bob', email: 'bob@example.com', password: 'securePass1!', inviteCode: 'JOINCODE' },
+  }));
+  expect(res.status).toBe(201);
+
+  const { data } = await json(res);
+  expect(data.role).toBe('member');
+  expect(data.tenantId).toBe(tenant._id.toString());
+  expect(data.tenantName).toBe('Join Corp');
+
+  const user = await User.findOne({ email: 'bob@example.com' });
+  expect(user?.tenantId.toString()).toBe(tenant._id.toString());
+
+  const code = await InviteCode.findOne({ code: 'JOINCODE' });
+  expect(code?.usedAt).toBeDefined();
+});
+
+// ── 3. workspace_join: companyName is ignored ─────────────────────────────────
+
+it('workspace_join code ignores companyName and does not create a new tenant', async () => {
+  const tenant = await Tenant.create({
+    name: 'Existing Co',
+    slug: 'existing-co',
+    ownerId: new mongoose.Types.ObjectId(),
+    branding: {},
+  });
+  await makeJoinCode(tenant._id);
+
+  const res = await register(req('POST', '/api/auth/register', {
+    body: { name: 'Carol', email: 'carol@example.com', password: 'securePass1!', companyName: 'Ignored Name', inviteCode: 'JOINCODE' },
+  }));
+  expect(res.status).toBe(201);
+  expect(await Tenant.countDocuments()).toBe(1);
+  expect((await json(res)).data.tenantName).toBe('Existing Co');
+});
+
+// ── 4. workspace_join: 404 if tenant no longer exists ────────────────────────
+
+it('workspace_join code returns 404 if linked tenant is missing', async () => {
+  await makeJoinCode(new mongoose.Types.ObjectId());
+  const res = await register(req('POST', '/api/auth/register', {
+    body: { name: 'Dave', email: 'dave@example.com', password: 'securePass1!', inviteCode: 'JOINCODE' },
+  }));
+  expect(res.status).toBe(404);
+});
+
+// ── 5. Duplicate email ────────────────────────────────────────────────────────
 
 it('returns 409 when email is already registered', async () => {
-  await makeCode();
+  await makeCreateCode();
   await InviteCode.create({
     code: 'TESTCODE2',
+    type: 'workspace_create',
     createdBy: new mongoose.Types.ObjectId(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
@@ -79,26 +151,28 @@ it('returns 409 when email is already registered', async () => {
   expect((await json(res)).error).toMatch(/already in use/i);
 });
 
-// ── 3. Missing required fields ────────────────────────────────────────────────
+// ── 6. Missing required fields ────────────────────────────────────────────────
 
 it('returns 400 when name is missing', async () => {
-  await makeCode();
+  await makeCreateCode();
   const { name: _, ...body } = validBody;
   const res = await register(req('POST', '/api/auth/register', { body: { ...body, inviteCode: 'TESTCODE' } }));
   expect(res.status).toBe(400);
 });
 
-it('returns 400 when companyName is missing', async () => {
-  await makeCode();
+// ── 7. workspace_create: companyName required ─────────────────────────────────
+
+it('returns 400 when companyName is missing for workspace_create code', async () => {
+  await makeCreateCode();
   const { companyName: _, ...body } = validBody;
   const res = await register(req('POST', '/api/auth/register', { body: { ...body, inviteCode: 'TESTCODE' } }));
   expect(res.status).toBe(400);
 });
 
-// ── 4. Short password ─────────────────────────────────────────────────────────
+// ── 8. Short password ─────────────────────────────────────────────────────────
 
 it('returns 400 when password is too short', async () => {
-  await makeCode();
+  await makeCreateCode();
   const res = await register(
     req('POST', '/api/auth/register', { body: { ...validBody, inviteCode: 'TESTCODE', password: 'short' } })
   );
@@ -106,7 +180,7 @@ it('returns 400 when password is too short', async () => {
   expect((await json(res)).error).toMatch(/8 characters/i);
 });
 
-// ── 5. No code supplied ───────────────────────────────────────────────────────
+// ── 9. No code supplied ───────────────────────────────────────────────────────
 
 it('returns 403 when no invite code is supplied', async () => {
   const res = await register(req('POST', '/api/auth/register', { body: validBody }));
@@ -114,7 +188,7 @@ it('returns 403 when no invite code is supplied', async () => {
   expect((await json(res)).error).toMatch(/invite code/i);
 });
 
-// ── 6. Non-existent code ──────────────────────────────────────────────────────
+// ── 10. Non-existent code ─────────────────────────────────────────────────────
 
 it('returns 403 when invite code does not exist', async () => {
   const res = await register(
@@ -125,10 +199,10 @@ it('returns 403 when invite code does not exist', async () => {
   expect(await User.countDocuments()).toBe(0);
 });
 
-// ── 7. Already-used code ──────────────────────────────────────────────────────
+// ── 11. Already-used code ─────────────────────────────────────────────────────
 
 it('returns 403 when invite code has already been used', async () => {
-  await makeCode({ usedAt: new Date() });
+  await makeCreateCode({ usedAt: new Date() });
   const res = await register(
     req('POST', '/api/auth/register', { body: { ...validBody, inviteCode: 'TESTCODE' } })
   );
@@ -136,10 +210,10 @@ it('returns 403 when invite code has already been used', async () => {
   expect((await json(res)).error).toMatch(/already been used/i);
 });
 
-// ── 8. Expired code ───────────────────────────────────────────────────────────
+// ── 12. Expired code ──────────────────────────────────────────────────────────
 
 it('returns 403 when invite code has expired', async () => {
-  await makeCode({ expiresAt: new Date(Date.now() - 1000) });
+  await makeCreateCode({ expiresAt: new Date(Date.now() - 1000) });
   const res = await register(
     req('POST', '/api/auth/register', { body: { ...validBody, inviteCode: 'TESTCODE' } })
   );
@@ -147,10 +221,10 @@ it('returns 403 when invite code has expired', async () => {
   expect((await json(res)).error).toMatch(/expired/i);
 });
 
-// ── 9. Revoked code ───────────────────────────────────────────────────────────
+// ── 13. Revoked code ──────────────────────────────────────────────────────────
 
 it('returns 403 when invite code has been revoked', async () => {
-  await makeCode({ revokedAt: new Date() });
+  await makeCreateCode({ revokedAt: new Date() });
   const res = await register(
     req('POST', '/api/auth/register', { body: { ...validBody, inviteCode: 'TESTCODE' } })
   );
