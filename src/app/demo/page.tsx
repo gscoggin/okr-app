@@ -12,7 +12,7 @@ export default function DemoPage() {
     fetch('/api/demo/session')
       .then((res) => {
         if (res.ok) {
-          router.replace('/');
+          window.location.href = '/';
         } else {
           setStatus('error');
         }
