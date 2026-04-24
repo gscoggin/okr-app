@@ -4,7 +4,7 @@ import { Topbar } from '@/components/nav/Topbar';
 import { Sidebar } from '@/components/nav/Sidebar';
 import { DemoProvider } from '@/components/demo/DemoContext';
 import { connectDB } from '@/lib/mongodb';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isAdmin } from '@/lib/auth';
 import Org from '@/models/Org';
 import Team from '@/models/Team';
 import OKRPage from '@/models/OKRPage';
@@ -82,7 +82,7 @@ async function getData(tenantId: string): Promise<{
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   const tenantId = user?.tenantId ?? '';
-  const isAdmin = user ? ['super_admin', 'tenant_owner', 'admin'].includes(user.role) : false;
+  const canAdmin = user ? isAdmin(user) : false;
 
   const { orgs, teams, teamSummaries, branding, tenantName } = await getData(tenantId);
 
@@ -97,7 +97,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             teamSummaries={teamSummaries}
             branding={branding}
             tenantName={tenantName}
-            isAdmin={isAdmin}
+            isAdmin={canAdmin}
           />
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">{children}</main>
         </div>

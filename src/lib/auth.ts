@@ -78,15 +78,6 @@ export function isTeamOwner(user: AuthPayload, teamId: string): boolean {
   );
 }
 
-export function isTeamMember(user: AuthPayload, teamId: string): boolean {
-  if (isAdmin(user)) return true;
-  return user.teamMemberships.some((m) => m.teamId === teamId);
-}
-
 export function canEditTeamOKR(user: AuthPayload, teamId: string): boolean {
-  return isTeamOwner(user, teamId);
-}
-
-export function canPublishOKR(user: AuthPayload, teamId: string): boolean {
   return isTeamOwner(user, teamId);
 }

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isAdmin, isTenantOwner } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import Tenant from '@/models/Tenant';
 import { TenantSettingsEditor } from '@/components/settings/TenantSettingsEditor';
@@ -11,8 +11,7 @@ export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const isAdmin = ['super_admin', 'tenant_owner', 'admin'].includes(user.role);
-  if (!isAdmin) redirect('/');
+  if (!isAdmin(user)) redirect('/');
 
   await connectDB();
   const tenant = await Tenant.findById(user.tenantId).lean();
@@ -29,5 +28,5 @@ export default async function SettingsPage() {
     updatedAt: tenant.updatedAt.toISOString(),
   };
 
-  return <TenantSettingsEditor tenant={serialized} isTenantOwner={['super_admin', 'tenant_owner'].includes(user.role)} />;
+  return <TenantSettingsEditor tenant={serialized} isTenantOwner={isTenantOwner(user)} />;
 }
