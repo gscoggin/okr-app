@@ -5,10 +5,12 @@ const PUBLIC_PATHS = [
   '/register',
   '/forgot-password',
   '/reset-password',
+  '/demo',
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
+  '/api/demo/session',
 ];
 
 export function proxy(req: NextRequest) {
@@ -28,12 +30,12 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Redirect unauthenticated users to /login
+  // Redirect unauthenticated users — to /demo on demo deployment, /login otherwise
   const token = req.cookies.get('okr_token');
   if (!token) {
-    const loginUrl = req.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    return NextResponse.redirect(loginUrl);
+    const target = req.nextUrl.clone();
+    target.pathname = process.env.IS_DEMO_DEPLOYMENT === 'true' ? '/demo' : '/login';
+    return NextResponse.redirect(target);
   }
 
   return NextResponse.next();
