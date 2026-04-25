@@ -88,7 +88,7 @@ export default function AdminPage() {
     status: 'pending' | 'approved' | 'declined'; createdAt: string;
   }>>([]);
   const [accessRequestsFilter, setAccessRequestsFilter] = useState<'pending' | 'all'>('pending');
-  const [codeCopiedFor, setCodeCopiedFor] = useState('');
+  const [approvedFor, setApprovedFor] = useState('');
 
   // Invite codes
   const [inviteCodes, setInviteCodes] = useState<Array<{
@@ -124,26 +124,16 @@ export default function AdminPage() {
     if (res.ok) setAccessRequests((await res.json()).data ?? []);
   }, []);
 
-  const generateCodeForRequest = async (requestId: string, name: string) => {
-    const codeRes = await fetch('/api/invite-codes', {
-      method: 'POST',
+  const approveRequest = async (requestId: string) => {
+    const res = await fetch(`/api/demo/access-requests/${requestId}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note: name }),
+      body: JSON.stringify({ status: 'approved' }),
     });
-    if (!codeRes.ok) return;
-    const { data } = await codeRes.json();
-    navigator.clipboard.writeText(data.code);
-    setCodeCopiedFor(requestId);
-    setTimeout(() => setCodeCopiedFor(''), 2000);
-    await Promise.all([
-      fetch(`/api/demo/access-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'approved' }),
-      }),
-      loadAccessRequests(),
-      loadInviteCodes(),
-    ]);
+    if (!res.ok) return;
+    setApprovedFor(requestId);
+    setTimeout(() => setApprovedFor(''), 3000);
+    await Promise.all([loadAccessRequests(), loadInviteCodes()]);
   };
 
   const declineRequest = async (requestId: string) => {
@@ -166,7 +156,7 @@ export default function AdminPage() {
     const res = await fetch('/api/invite-codes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note: newCodeNote.trim() || undefined }),
+      body: JSON.stringify({ type: 'workspace_create', note: newCodeNote.trim() || undefined }),
     });
     if (res.ok) {
       const json = await res.json();
@@ -924,7 +914,7 @@ export default function AdminPage() {
               </div>
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-              Generate a code for a request to approve it — code is copied to your clipboard automatically.
+              Approving a request generates a workspace_create invite code and emails it directly to the requester.
             </p>
 
             {(() => {
@@ -967,10 +957,10 @@ export default function AdminPage() {
                         ) : (
                           <>
                             <button
-                              onClick={() => generateCodeForRequest(r._id, r.name)}
+                              onClick={() => approveRequest(r._id)}
                               className="text-xs font-medium px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                             >
-                              {codeCopiedFor === r._id ? 'Copied!' : 'Generate & copy code'}
+                              {approvedFor === r._id ? 'Code sent ✓' : 'Approve & send code'}
                             </button>
                             <button
                               onClick={() => declineRequest(r._id)}

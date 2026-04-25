@@ -5,16 +5,18 @@ export interface AccessRequestDocument extends Document {
   email: string;
   useCase?: string;
   status: 'pending' | 'approved' | 'declined';
+  inviteCode?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const AccessRequestSchema = new Schema<AccessRequestDocument>(
   {
-    name:    { type: String, required: true, trim: true },
-    email:   { type: String, required: true, trim: true, lowercase: true },
-    useCase: { type: String, trim: true },
-    status:  { type: String, enum: ['pending', 'approved', 'declined'], default: 'pending' },
+    name:       { type: String, required: true, trim: true },
+    email:      { type: String, required: true, trim: true, lowercase: true },
+    useCase:    { type: String, trim: true },
+    status:     { type: String, enum: ['pending', 'approved', 'declined'], default: 'pending' },
+    inviteCode: { type: String },
   },
   { timestamps: true }
 );
