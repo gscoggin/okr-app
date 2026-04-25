@@ -65,6 +65,42 @@ src/
 - Published OKRs cannot be edited
 - Cannot publish if any KR has no owner
 
+## Branching & Deployment Strategy
+
+Two long-lived branches, each mapped to a Vercel project:
+
+| Branch | Vercel project | Purpose |
+|--------|---------------|---------|
+| `main` | prod app | Production — all committed work lands here first |
+| `demo` | demo app | Curated subset — cherry-pick from main to promote |
+
+**Normal workflow:**
+```bash
+# All work goes to main first
+git commit -m "feat(x): ..."
+git push origin main          # prod deploys automatically
+
+# Promote a specific commit to demo
+git checkout demo
+git cherry-pick <hash>
+git push origin demo          # demo deploys automatically
+git checkout main
+```
+
+**Nuclear sync** (reset demo = prod):
+```bash
+git checkout demo
+git reset --hard main
+git push --force origin demo
+git checkout main
+```
+
+**Rules:**
+- Never merge `main` → `demo` (that would bring everything across)
+- Never commit directly to `demo` — all work starts on `main`
+- Keep commits on `main` atomic and well-named so cherry-picking is surgical
+- Demo-specific runtime behavior is gated by `IS_DEMO_DEPLOYMENT=true` env var (set in Vercel demo project), not by code that only lives on the demo branch
+
 ## Phase 2 TODOs (AI features)
 
 Search for `TODO Phase 2` in the codebase to find all AI integration stubs:

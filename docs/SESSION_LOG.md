@@ -2,6 +2,36 @@
 
 ---
 
+### 2026-04-24 — Invite code overhaul, test coverage expansion, branching strategy
+
+**Status:** All shipped to main. demo branch reset to main (clean slate).
+
+**Completed:**
+- Refactored `auth.ts`: removed dead `isTeamMember()` / `canPublishOKR()`, replaced hardcoded role arrays in `guide/page.tsx`, `layout.tsx`, `settings/page.tsx` with `isAdmin()` / `isTenantOwner()` helpers
+- Two-tier invite code system: `workspace_create` (super_admin only, new tenant) and `workspace_join` (admin/tenant_owner, adds member to existing tenant)
+- `InviteCode` model extended with `type` and `tenantId` fields
+- `GET /api/invite-codes/[code]` public peek endpoint — register page queries on blur and adapts form (hides company name for join codes)
+- GET/DELETE scoping: super_admin sees all; admins see/revoke only their tenant's join codes
+- New test files: `login.test.ts` (9), `tenantSettings.test.ts` (10), `adminYears.test.ts` (6) — 198 tests total, all passing
+- **Branching strategy decided: Option B (two-branch cherry-pick model)**
+  - `main` → prod, `demo` → curated subset
+  - Promote features to demo via `git cherry-pick`
+  - Nuclear sync: `git reset --hard main && git push --force origin demo`
+  - Documented in `CLAUDE.md`
+  - demo branch reset to current main as clean baseline
+
+**Decisions:**
+- Option B (separate branches) chosen over Option A (env-var gates) because it provides true binary separation, smaller demo bundle, no hidden API surface, and long-term flexibility for experiment slicing
+- `workspace_create` codes default in InviteCode schema for backward compat with existing DB records
+- Register page peeks code type client-side (on blur) rather than two separate pages — one URL to share, form adapts
+
+**Next:**
+- P1 roadmap: batch import/export (CSV) or OKR alignment tree
+- AI features (stubs in place, need `ANTHROPIC_API_KEY`)
+- Address Dependabot moderate vulnerability on repo
+
+---
+
 ### 2026-04-24 — Demo deployment fully working
 
 **Status:** Demo is live and working end-to-end.
