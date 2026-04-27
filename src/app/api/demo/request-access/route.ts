@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
 
   // Notify admin — fire-and-forget, don't fail the request if email errors
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  console.log('[request-access] RESEND_API_KEY set:', !!process.env.RESEND_API_KEY);
+  console.log('[request-access] ADMIN_NOTIFICATION_EMAIL:', adminEmail ?? '(not set)');
+  console.log('[request-access] EMAIL_FROM:', process.env.EMAIL_FROM ?? '(not set, using fallback)');
   if (adminEmail && process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     resend.emails.send({
@@ -39,7 +42,9 @@ export async function POST(req: NextRequest) {
         '',
         'Review in the admin panel: /admin',
       ].join('\n'),
-    }).catch(() => {/* intentionally silent */});
+    }).catch((err: unknown) => {
+      console.error('[request-access] Resend error:', err);
+    });
   }
 
   return ok({ received: true }, 201);
