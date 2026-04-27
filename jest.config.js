@@ -9,6 +9,9 @@ module.exports = {
     // Stub out Next.js server-only modules that don't work in Jest
     '^next/headers$': '<rootDir>/src/__tests__/__mocks__/next-headers.ts',
   },
-  testMatch: ['<rootDir>/src/__tests__/journeys/**/*.test.ts'],
+  testMatch: [
+    '<rootDir>/src/__tests__/journeys/**/*.test.ts',
+    '<rootDir>/src/__tests__/unit/**/*.test.ts',
+  ],
   testTimeout: 30000, // allow time for MongoMemoryServer binary download
 };

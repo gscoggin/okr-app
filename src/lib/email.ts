@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 
-const FROM = process.env.EMAIL_FROM ?? 'OKRs <noreply@yourdomain.com>';
+const FROM = process.env.EMAIL_FROM ?? 'OKRs <onboarding@resend.dev>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 const REGISTER_URL = `${APP_URL}/register`;
 
