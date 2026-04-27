@@ -92,7 +92,7 @@ export default function AdminPage() {
 
   // Invite codes
   const [inviteCodes, setInviteCodes] = useState<Array<{
-    _id: string; code: string; note: string | null;
+    _id: string; code: string; type: string; note: string | null;
     status: string; expiresAt: string; usedAt: string | null; createdAt: string;
   }>>([]);
   const [newCodeNote, setNewCodeNote] = useState('');
@@ -150,13 +150,16 @@ export default function AdminPage() {
     if (res.ok) setInviteCodes((await res.json()).data ?? []);
   }, []);
 
+  const isSuperAdmin = user?.role === 'super_admin';
+
   const generateInviteCode = async () => {
     setGeneratingCode(true);
     setNewlyGeneratedCode('');
+    const type = isSuperAdmin ? 'workspace_create' : 'workspace_join';
     const res = await fetch('/api/invite-codes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'workspace_create', note: newCodeNote.trim() || undefined }),
+      body: JSON.stringify({ type, note: newCodeNote.trim() || undefined }),
     });
     if (res.ok) {
       const json = await res.json();
@@ -983,7 +986,9 @@ export default function AdminPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Invite Codes</h2>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-              Each code is single-use and expires 7 days after generation.
+              {isSuperAdmin
+                ? 'Generates a workspace_create code — lets the recipient register a brand-new workspace. Single-use, expires in 7 days.'
+                : 'Generates a workspace_join code — lets the recipient join your workspace. Single-use, expires in 7 days.'}
             </p>
 
             {/* Generate form */}
@@ -1034,6 +1039,13 @@ export default function AdminPage() {
                                                'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                     }`}>
                       {c.status}
+                    </span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                      c.type === 'workspace_create'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    }`}>
+                      {c.type === 'workspace_create' ? 'new workspace' : 'join'}
                     </span>
                     <div className="flex-1 min-w-0">
                       {c.note && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.note}</p>}

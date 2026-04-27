@@ -7,7 +7,8 @@ import User from '@/models/User';
 export async function POST(req: NextRequest) {
   const { token, password } = await req.json();
   if (!token || !password) return err('Token and password are required');
-  if (password.length < 8) return err('Password must be at least 8 characters');
+  if (password.length < 8)   return err('Password must be at least 8 characters');
+  if (password.length > 128) return err('Password must be 128 characters or fewer');
 
   await connectDB();
 

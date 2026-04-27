@@ -41,12 +41,8 @@ export async function POST(req: NextRequest) {
   user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await user.save();
 
-  try {
-    await sendPasswordResetEmail(user.email, token);
-  } catch (e) {
-    console.error('[forgot-password] Resend error:', e);
-    return err('Failed to send reset email', 500);
-  }
+  const sent = await sendPasswordResetEmail(user.email, token);
+  if (!sent) return err('Failed to send reset email. Please try again.', 500);
 
   return ok({ sent: true });
 }

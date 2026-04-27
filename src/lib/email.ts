@@ -4,16 +4,16 @@ const FROM = process.env.EMAIL_FROM ?? 'OKRs <onboarding@resend.dev>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 const REGISTER_URL = `${APP_URL}/register`;
 
-export async function sendInviteCodeEmail(email: string, name: string, code: string) {
+export async function sendInviteCodeEmail(email: string, name: string, code: string): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
     if (process.env.NODE_ENV !== 'production') {
       console.log(`\n[DEV] Invite code for ${email}: ${code}\n${REGISTER_URL}\n`);
     }
-    return;
+    return true;
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: email,
     subject: 'Your invite code is ready',
@@ -25,20 +25,26 @@ export async function sendInviteCodeEmail(email: string, name: string, code: str
       <p style="color:#999;font-size:12px">This code expires in 7 days. If you didn't request access, you can ignore this email.</p>
     `,
   });
+
+  if (error) {
+    console.error('[email] sendInviteCodeEmail error:', JSON.stringify(error));
+    return false;
+  }
+  return true;
 }
 
-export async function sendPasswordResetEmail(email: string, token: string) {
+export async function sendPasswordResetEmail(email: string, token: string): Promise<boolean> {
   const link = `${APP_URL}/reset-password?token=${token}`;
 
   if (!process.env.RESEND_API_KEY) {
     if (process.env.NODE_ENV !== 'production') {
       console.log(`\n[DEV] Password reset link for ${email}:\n${link}\n`);
     }
-    return;
+    return true;
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: email,
     subject: 'Reset your password',
@@ -49,4 +55,10 @@ export async function sendPasswordResetEmail(email: string, token: string) {
       <p style="color:#999;font-size:12px">${link}</p>
     `,
   });
+
+  if (error) {
+    console.error('[email] sendPasswordResetEmail error:', JSON.stringify(error));
+    return false;
+  }
+  return true;
 }

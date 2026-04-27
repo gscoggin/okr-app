@@ -16,7 +16,7 @@
 
 // Mock email so tests never hit the Resend API
 jest.mock('@/lib/email', () => ({
-  sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
 }));
 
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
