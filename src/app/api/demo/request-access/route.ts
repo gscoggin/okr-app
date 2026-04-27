@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   if (adminEmail && process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     resend.emails.send({
-      from:    'OKR App <notifications@resend.dev>',
+      from:    process.env.EMAIL_FROM ?? 'OKR App <onboarding@resend.dev>',
       to:      adminEmail,
       subject: `New access request from ${name}`,
       text: [
