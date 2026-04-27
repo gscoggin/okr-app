@@ -3,9 +3,15 @@ import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import { signToken, AUTH_COOKIE } from '@/lib/auth';
 import { ok, err } from '@/lib/apiUtils';
+import { isRateLimited } from '@/lib/rateLimit';
 import User from '@/models/User';
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (isRateLimited(`login:${ip}`, 5, 15 * 60 * 1000)) {
+    return err('Too many login attempts. Please try again later.', 429);
+  }
+
   const { email, password } = await req.json();
 
   if (!email || !password) return err('Email and password are required');

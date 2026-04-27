@@ -2,20 +2,28 @@ import { NextRequest } from 'next/server';
 import { Resend } from 'resend';
 import { connectDB } from '@/lib/mongodb';
 import { ok, err } from '@/lib/apiUtils';
+import { isRateLimited } from '@/lib/rateLimit';
 import AccessRequest from '@/models/AccessRequest';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (isRateLimited(`request-access:${ip}`, 5, 60 * 60 * 1000)) {
+    return err('Too many requests. Please try again later.', 429);
+  }
+
   const body = await req.json().catch(() => ({}));
 
   // Honeypot — bots fill this, humans don't
   if (body._trap) return ok({ received: true });
 
-  const name: string    = body.name?.trim() ?? '';
-  const email: string   = body.email?.trim().toLowerCase() ?? '';
-  const useCase: string = body.useCase?.trim() ?? '';
+  const name: string    = (body.name?.trim() ?? '').slice(0, 100);
+  const email: string   = (body.email?.trim().toLowerCase() ?? '').slice(0, 255);
+  const useCase: string = (body.useCase?.trim() ?? '').slice(0, 1000);
 
-  if (!name)                        return err('Name is required');
-  if (!email || !email.includes('@')) return err('A valid email is required');
+  if (!name)                    return err('Name is required');
+  if (!EMAIL_RE.test(email))    return err('A valid email is required');
 
   await connectDB();
 

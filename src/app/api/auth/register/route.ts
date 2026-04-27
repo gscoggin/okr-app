@@ -2,11 +2,17 @@ import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import { ok, err, slugify } from '@/lib/apiUtils';
+import { isRateLimited } from '@/lib/rateLimit';
 import User from '@/models/User';
 import Tenant from '@/models/Tenant';
 import InviteCode from '@/models/InviteCode';
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (isRateLimited(`register:${ip}`, 5, 60 * 60 * 1000)) {
+    return err('Too many registration attempts. Please try again later.', 429);
+  }
+
   const { name, email, password, companyName, inviteCode } = await req.json();
 
   if (!inviteCode?.trim()) return err('An invite code is required', 403);
@@ -21,7 +27,8 @@ export async function POST(req: NextRequest) {
   if (codeDoc.expiresAt < new Date())   return err('This invite code has expired', 403);
 
   if (!name || !email || !password) return err('Name, email and password are required');
-  if (password.length < 8) return err('Password must be at least 8 characters');
+  if (password.length < 8)   return err('Password must be at least 8 characters');
+  if (password.length > 128) return err('Password must be 128 characters or fewer');
 
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) return err('Email already in use', 409);
