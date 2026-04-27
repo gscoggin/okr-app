@@ -24,27 +24,34 @@ export async function POST(req: NextRequest) {
 
   await AccessRequest.create({ name, email, useCase: useCase || undefined });
 
-  // Notify admin — fire-and-forget, don't fail the request if email errors
+  // Notify admin
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
-  console.log('[request-access] RESEND_API_KEY set:', !!process.env.RESEND_API_KEY);
-  console.log('[request-access] ADMIN_NOTIFICATION_EMAIL:', adminEmail ?? '(not set)');
-  console.log('[request-access] EMAIL_FROM:', process.env.EMAIL_FROM ?? '(not set, using fallback)');
+  console.log('[request-access]', JSON.stringify({
+    hasKey: !!process.env.RESEND_API_KEY,
+    adminEmail: adminEmail ?? '(not set)',
+    emailFrom: process.env.EMAIL_FROM ?? '(not set)',
+  }));
   if (adminEmail && process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY);
-    resend.emails.send({
-      from:    process.env.EMAIL_FROM ?? 'OKR App <onboarding@resend.dev>',
-      to:      adminEmail,
-      subject: `New access request from ${name}`,
-      text: [
-        `Name:    ${name}`,
-        `Email:   ${email}`,
-        `Use case: ${useCase || '(not provided)'}`,
-        '',
-        'Review in the admin panel: /admin',
-      ].join('\n'),
-    }).catch((err: unknown) => {
+    try {
+      await resend.emails.send({
+        from:    process.env.EMAIL_FROM ?? 'OKR App <onboarding@resend.dev>',
+        to:      adminEmail,
+        subject: `New access request from ${name}`,
+        text: [
+          `Name:    ${name}`,
+          `Email:   ${email}`,
+          `Use case: ${useCase || '(not provided)'}`,
+          '',
+          'Review at /admin',
+        ].join('\n'),
+      });
+      console.log('[request-access] email sent ok');
+    } catch (err: unknown) {
       console.error('[request-access] Resend error:', err);
-    });
+    }
+  } else {
+    console.log('[request-access] skipping email: missing adminEmail or RESEND_API_KEY');
   }
 
   return ok({ received: true }, 201);
