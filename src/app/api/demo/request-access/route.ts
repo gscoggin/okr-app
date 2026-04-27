@@ -26,11 +26,6 @@ export async function POST(req: NextRequest) {
 
   // Notify admin
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
-  console.log('[request-access]', JSON.stringify({
-    hasKey: !!process.env.RESEND_API_KEY,
-    adminEmail: adminEmail ?? '(not set)',
-    emailFrom: process.env.EMAIL_FROM ?? '(not set)',
-  }));
   if (adminEmail && process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
@@ -47,11 +42,7 @@ export async function POST(req: NextRequest) {
     });
     if (error) {
       console.error('[request-access] Resend error:', JSON.stringify(error));
-    } else {
-      console.log('[request-access] email sent ok, id:', data?.id);
     }
-  } else {
-    console.log('[request-access] skipping email: missing adminEmail or RESEND_API_KEY');
   }
 
   return ok({ received: true }, 201);
