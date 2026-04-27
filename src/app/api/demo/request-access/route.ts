@@ -33,22 +33,22 @@ export async function POST(req: NextRequest) {
   }));
   if (adminEmail && process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY);
-    try {
-      await resend.emails.send({
-        from:    process.env.EMAIL_FROM ?? 'OKR App <onboarding@resend.dev>',
-        to:      adminEmail,
-        subject: `New access request from ${name}`,
-        text: [
-          `Name:    ${name}`,
-          `Email:   ${email}`,
-          `Use case: ${useCase || '(not provided)'}`,
-          '',
-          'Review at /admin',
-        ].join('\n'),
-      });
-      console.log('[request-access] email sent ok');
-    } catch (err: unknown) {
-      console.error('[request-access] Resend error:', err);
+    const { data, error } = await resend.emails.send({
+      from:    process.env.EMAIL_FROM ?? 'OKR App <onboarding@resend.dev>',
+      to:      adminEmail,
+      subject: `New access request from ${name}`,
+      text: [
+        `Name:    ${name}`,
+        `Email:   ${email}`,
+        `Use case: ${useCase || '(not provided)'}`,
+        '',
+        'Review at /admin',
+      ].join('\n'),
+    });
+    if (error) {
+      console.error('[request-access] Resend error:', JSON.stringify(error));
+    } else {
+      console.log('[request-access] email sent ok, id:', data?.id);
     }
   } else {
     console.log('[request-access] skipping email: missing adminEmail or RESEND_API_KEY');
