@@ -10,9 +10,12 @@
  *   6.  sendPasswordResetEmail uses NEXT_PUBLIC_APP_URL for the reset link
  *   7.  No email is sent when RESEND_API_KEY is not set (dev mode)
  *   8.  request-access notification uses EMAIL_FROM env var (not hardcoded)
+ *   9.  request-access notification is skipped when ADMIN_NOTIFICATION_EMAIL is not set
+ *   10. request-access logs error when Resend returns an error response
  */
 
-const mockSend = jest.fn().mockResolvedValue({ id: 'test-id' });
+// Resend SDK v6 returns { data, error } — never throws
+const mockSend = jest.fn().mockResolvedValue({ data: { id: 'test-id' }, error: null });
 
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
@@ -22,7 +25,6 @@ jest.mock('resend', () => ({
 
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
 import { req } from '../helpers/request';
-import AccessRequest from '@/models/AccessRequest';
 import { POST as requestAccess } from '@/app/api/demo/request-access/route';
 
 beforeAll(() => connectTestDB(), 30000);
@@ -30,7 +32,6 @@ afterAll(() => disconnectTestDB());
 beforeEach(() => {
   clearTestDB();
   mockSend.mockClear();
-  // Reset module between tests so email.ts re-reads env vars
   jest.resetModules();
 });
 
@@ -153,14 +154,51 @@ it('request-access notification uses EMAIL_FROM env var as sender', async () => 
   }));
   expect(res.status).toBe(201);
 
-  // Wait briefly for fire-and-forget
-  await new Promise((r) => setTimeout(r, 50));
-
   expect(mockSend).toHaveBeenCalledWith(
     expect.objectContaining({ from: 'My App <custom@example.com>' })
   );
 
   delete process.env.RESEND_API_KEY;
   delete process.env.EMAIL_FROM;
+  delete process.env.ADMIN_NOTIFICATION_EMAIL;
+});
+
+// ── 9. Skips email when ADMIN_NOTIFICATION_EMAIL is not set ──────────────────
+
+it('request-access skips email when ADMIN_NOTIFICATION_EMAIL is not set', async () => {
+  process.env.RESEND_API_KEY = 'test-key';
+  delete process.env.ADMIN_NOTIFICATION_EMAIL;
+
+  const res = await requestAccess(req('POST', '/api/demo/request-access', {
+    body: { name: 'Jane', email: 'jane2@example.com', useCase: 'Testing' },
+  }));
+  expect(res.status).toBe(201);
+
+  expect(mockSend).not.toHaveBeenCalled();
+
+  delete process.env.RESEND_API_KEY;
+});
+
+// ── 10. Logs error when Resend returns error response ────────────────────────
+
+it('request-access logs error when Resend returns an error response', async () => {
+  process.env.RESEND_API_KEY = 'test-key';
+  process.env.ADMIN_NOTIFICATION_EMAIL = 'admin@example.com';
+  mockSend.mockResolvedValueOnce({ data: null, error: { message: 'Invalid sender', name: 'validation_error' } });
+
+  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  const res = await requestAccess(req('POST', '/api/demo/request-access', {
+    body: { name: 'Jane', email: 'jane3@example.com', useCase: 'Testing' },
+  }));
+  expect(res.status).toBe(201); // still returns 201 — email failure doesn't break the request
+
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.stringContaining('[request-access] Resend error:'),
+    expect.stringContaining('Invalid sender')
+  );
+
+  consoleSpy.mockRestore();
+  delete process.env.RESEND_API_KEY;
   delete process.env.ADMIN_NOTIFICATION_EMAIL;
 });
