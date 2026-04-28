@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { connectDB } from '@/lib/mongodb';
 import { requireAuth, ok, err } from '@/lib/apiUtils';
 import { isAdmin, isSuperAdmin, isTenantOwner } from '@/lib/auth';
 import InviteCode from '@/models/InviteCode';
+import Tenant from '@/models/Tenant';
 
 const EXPIRY_DAYS = 7;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I
@@ -69,6 +71,15 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
 
+  // Super_admin can generate a workspace_join code for any tenant by passing tenantId
+  let targetTenantId = user.tenantId;
+  if (type === 'workspace_join' && isSuperAdmin(user) && body.tenantId) {
+    if (!mongoose.Types.ObjectId.isValid(body.tenantId)) return err('Invalid tenantId', 400);
+    const tenant = await Tenant.findById(body.tenantId).lean();
+    if (!tenant) return err('Tenant not found', 404);
+    targetTenantId = body.tenantId;
+  }
+
   let code = generateCode();
   let attempts = 0;
   while (await InviteCode.exists({ code }) && attempts++ < 5) {
@@ -78,14 +89,13 @@ export async function POST(req: NextRequest) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + EXPIRY_DAYS);
 
-  const { Types } = await import('mongoose');
   const doc = await InviteCode.create({
     code,
     type,
     note,
     expiresAt,
-    createdBy: new Types.ObjectId(user.userId),
-    ...(type === 'workspace_join' ? { tenantId: new Types.ObjectId(user.tenantId) } : {}),
+    createdBy: new mongoose.Types.ObjectId(user.userId),
+    ...(type === 'workspace_join' ? { tenantId: new mongoose.Types.ObjectId(targetTenantId) } : {}),
   });
 
   return ok({

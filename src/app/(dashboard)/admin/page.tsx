@@ -100,6 +100,25 @@ export default function AdminPage() {
   const [newlyGeneratedCode, setNewlyGeneratedCode] = useState('');
   const [copiedCode, setCopiedCode] = useState('');
 
+  // Platform (super_admin only)
+  const [platformTenants, setPlatformTenants] = useState<Array<{
+    _id: string; name: string; slug: string; isDemo: boolean;
+    userCount: number; teamCount: number; createdAt: string;
+  }>>([]);
+  const [expandedPlatformTenant, setExpandedPlatformTenant] = useState('');
+  const [platformUsers, setPlatformUsers] = useState<Record<string, Array<{
+    _id: string; name: string; email: string; role: string;
+  }>>>({});
+  const [platformConfirmDelete, setPlatformConfirmDelete] = useState('');
+  const [platformDeleteInput, setPlatformDeleteInput] = useState('');
+  const [platformDeleting, setPlatformDeleting] = useState('');
+  const [platformJoinTenantId, setPlatformJoinTenantId] = useState('');
+  const [platformJoinEmail, setPlatformJoinEmail] = useState('');
+  const [platformGenerating, setPlatformGenerating] = useState('');
+  const [platformNewCode, setPlatformNewCode] = useState<Record<string, string>>({});
+  const [platformCopied, setPlatformCopied] = useState('');
+  const [platformDeleteUserConfirm, setPlatformDeleteUserConfirm] = useState('');
+
   // Demo seed
   const [seedWorking, setSeedWorking] = useState(false);
   const [seedResult, setSeedResult] = useState<'done' | 'error' | null>(null);
@@ -181,6 +200,79 @@ export default function AdminPage() {
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
+  // ── Platform actions (super_admin) ─────────────────────────────────────────
+
+  const loadPlatformTenants = useCallback(async () => {
+    if (user?.role !== 'super_admin') return;
+    const res = await fetch('/api/tenants');
+    if (res.ok) setPlatformTenants((await res.json()).data ?? []);
+  }, [user?.role]);
+
+  const loadPlatformUsers = async (tenantId: string) => {
+    const res = await fetch(`/api/tenants/${tenantId}/users`);
+    if (res.ok) {
+      const body = await res.json();
+      setPlatformUsers((prev) => ({ ...prev, [tenantId]: body.data ?? [] }));
+    }
+  };
+
+  const platformChangeRole = async (tenantId: string, userId: string, role: string) => {
+    const res = await fetch(`/api/tenants/${tenantId}/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
+    if (res.ok) await loadPlatformUsers(tenantId);
+  };
+
+  const platformDeleteUser = async (tenantId: string, userId: string) => {
+    const res = await fetch(`/api/tenants/${tenantId}/users/${userId}`, { method: 'DELETE' });
+    if (res.ok) {
+      setPlatformDeleteUserConfirm('');
+      await Promise.all([loadPlatformUsers(tenantId), loadPlatformTenants()]);
+    }
+  };
+
+  const platformDeleteTenant = async (tenantId: string, tenantName: string) => {
+    if (platformDeleteInput !== tenantName) return;
+    setPlatformDeleting(tenantId);
+    const res = await fetch(`/api/tenants/${tenantId}`, { method: 'DELETE' });
+    if (res.ok) {
+      setPlatformConfirmDelete('');
+      setPlatformDeleteInput('');
+      setExpandedPlatformTenant('');
+      await loadPlatformTenants();
+    }
+    setPlatformDeleting('');
+  };
+
+  const platformGenerateJoinCode = async (tenantId: string) => {
+    setPlatformGenerating(tenantId);
+    const res = await fetch('/api/invite-codes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'workspace_join', tenantId }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const code: string = json.data.code;
+      setPlatformNewCode((prev) => ({ ...prev, [tenantId]: code }));
+
+      if (platformJoinEmail.trim()) {
+        await fetch('/api/invite-codes/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, email: platformJoinEmail.trim(), name: 'Team member' }),
+        });
+        setPlatformJoinEmail('');
+      }
+
+      setPlatformJoinTenantId('');
+      await loadInviteCodes();
+    }
+    setPlatformGenerating('');
+  };
+
   const loadArchives = useCallback(async () => {
     const res = await fetch('/api/archives');
     if (res.ok) setArchives((await res.json()).data ?? []);
@@ -201,11 +293,11 @@ export default function AdminPage() {
       if (orgsRes.ok) setOrgs((await orgsRes.json()).data ?? []);
       if (teamsRes.ok) setTeams((await teamsRes.json()).data ?? []);
       if (usersRes.ok) setUsers((await usersRes.json()).data ?? []);
-      await Promise.all([loadArchives(), loadYears(), loadInviteCodes(), loadAccessRequests()]);
+      await Promise.all([loadArchives(), loadYears(), loadInviteCodes(), loadAccessRequests(), loadPlatformTenants()]);
       setLoading(false);
     }
     load();
-  }, [loadArchives, loadYears, loadInviteCodes, loadAccessRequests]);
+  }, [loadArchives, loadYears, loadInviteCodes, loadAccessRequests, loadPlatformTenants]);
 
   // Auto-archive years older than AUTO_ARCHIVE_AGE
   useEffect(() => {
@@ -516,6 +608,183 @@ export default function AdminPage() {
         <p className="text-sm text-gray-400">Loading…</p>
       ) : (
         <div className="space-y-10">
+
+          {/* ── Platform (super_admin only) ───────────────────────────────────── */}
+          {user?.role === 'super_admin' && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Platform</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                All workspaces across the platform. Expand to manage users or generate join codes.
+              </p>
+
+              {platformTenants.length === 0 ? (
+                <p className="text-sm text-gray-400">No workspaces found.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                  {platformTenants.map((t) => {
+                    const isExpanded = expandedPlatformTenant === t._id;
+                    const tenantUsers = platformUsers[t._id] ?? [];
+                    const isConfirmingDelete = platformConfirmDelete === t._id;
+                    const isJoining = platformJoinTenantId === t._id;
+
+                    return (
+                      <li key={t._id} className="bg-white dark:bg-gray-800">
+                        {/* Tenant header */}
+                        <div className="px-4 py-3 flex items-center gap-3">
+                          <button
+                            onClick={async () => {
+                              const next = isExpanded ? '' : t._id;
+                              setExpandedPlatformTenant(next);
+                              setPlatformConfirmDelete('');
+                              if (next && !platformUsers[next]) await loadPlatformUsers(next);
+                            }}
+                            className="flex-1 flex items-center gap-2 text-left min-w-0"
+                          >
+                            <ChevronIcon open={isExpanded} small />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.name}</p>
+                                {t.isDemo && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-medium">demo</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                {t.slug} · {t.userCount} user{t.userCount !== 1 ? 's' : ''} · {t.teamCount} team{t.teamCount !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                          </button>
+
+                          {isConfirmingDelete ? (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <input
+                                type="text"
+                                placeholder={`Type "${t.name}" to confirm`}
+                                value={platformDeleteInput}
+                                onChange={(e) => setPlatformDeleteInput(e.target.value)}
+                                className="text-xs border border-red-300 dark:border-red-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-44 focus:outline-none focus:ring-1 focus:ring-red-400"
+                              />
+                              <button
+                                onClick={() => platformDeleteTenant(t._id, t.name)}
+                                disabled={platformDeleteInput !== t.name || platformDeleting === t._id}
+                                className="text-xs font-medium text-white bg-red-600 rounded-lg px-2.5 py-1 hover:bg-red-700 disabled:opacity-40 transition"
+                              >
+                                {platformDeleting === t._id ? 'Deleting…' : 'Delete'}
+                              </button>
+                              <button
+                                onClick={() => { setPlatformConfirmDelete(''); setPlatformDeleteInput(''); }}
+                                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setPlatformConfirmDelete(t._id); setPlatformDeleteInput(''); setExpandedPlatformTenant(t._id); }}
+                              className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition shrink-0"
+                              title="Delete workspace"
+                            >
+                              <TrashIcon />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Expanded: users + join code */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 space-y-4">
+                            {/* User list */}
+                            {tenantUsers.length === 0 ? (
+                              <p className="text-xs text-gray-400">No users.</p>
+                            ) : (
+                              <ul className="space-y-1">
+                                {tenantUsers.map((u) => (
+                                  <li key={u._id} className="flex items-center gap-2 text-xs">
+                                    <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center text-[10px] font-semibold uppercase shrink-0">
+                                      {u.name[0]}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-medium text-gray-800 dark:text-gray-100">{u.name}</span>
+                                      <span className="text-gray-400 dark:text-gray-500 ml-1.5">{u.email}</span>
+                                    </div>
+                                    <select
+                                      value={u.role}
+                                      onChange={(e) => platformChangeRole(t._id, u._id, e.target.value)}
+                                      className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    >
+                                      <option value="member">member</option>
+                                      <option value="admin">admin</option>
+                                      <option value="tenant_owner">tenant_owner</option>
+                                    </select>
+                                    {platformDeleteUserConfirm === u._id ? (
+                                      <span className="flex items-center gap-1.5">
+                                        <button onClick={() => platformDeleteUser(t._id, u._id)} className="text-red-600 font-medium hover:text-red-500">Yes</button>
+                                        <button onClick={() => setPlatformDeleteUserConfirm('')} className="text-gray-400 hover:text-gray-300">No</button>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => setPlatformDeleteUserConfirm(u._id)}
+                                        className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition"
+                                        title="Delete user"
+                                      >
+                                        <TrashIcon />
+                                      </button>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {/* Generate join code */}
+                            {isJoining ? (
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Generate join code for {t.name}</p>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="email"
+                                    placeholder="Send to email (optional)"
+                                    value={platformJoinEmail}
+                                    onChange={(e) => setPlatformJoinEmail(e.target.value)}
+                                    className="flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                  <button
+                                    onClick={() => platformGenerateJoinCode(t._id)}
+                                    disabled={platformGenerating === t._id}
+                                    className="text-xs font-medium px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition shrink-0"
+                                  >
+                                    {platformGenerating === t._id ? 'Generating…' : 'Generate'}
+                                  </button>
+                                  <button onClick={() => { setPlatformJoinTenantId(''); setPlatformJoinEmail(''); }} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                    Cancel
+                                  </button>
+                                </div>
+                                {platformNewCode[t._id] && (
+                                  <div className="flex items-center gap-3 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                    <span className="font-mono text-sm font-bold tracking-widest text-green-800 dark:text-green-300">{platformNewCode[t._id]}</span>
+                                    <button
+                                      onClick={() => { navigator.clipboard.writeText(platformNewCode[t._id]); setPlatformCopied(t._id); setTimeout(() => setPlatformCopied(''), 2000); }}
+                                      className="ml-auto text-xs text-green-700 dark:text-green-400 font-medium hover:text-green-900 dark:hover:text-green-200"
+                                    >
+                                      {platformCopied === t._id ? 'Copied!' : 'Copy'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setPlatformJoinTenantId(t._id); setPlatformNewCode((p) => ({ ...p, [t._id]: '' })); }}
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                              >
+                                + Generate join code
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
 
           {/* ── Orgs ─────────────────────────────────────────────────────────── */}
           <section>
