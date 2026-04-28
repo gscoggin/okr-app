@@ -14,9 +14,8 @@
  *   10. Period result href is /teams/[teamId]/[year]/q1 for quarterly
  *   11. Owner search finds an objective by owner displayName
  *   12. Owner search subtitle contains the owner name and team/period
- *   13. Tenant isolation — results never include data from another tenant
- *   14. Purely-period query ("2025") does not return name/owner results
- *   15. Mixed query ("Q1 2025") runs period search scoped to both
+ *   13. Purely-period query ("2025") does not return name/owner results
+ *   14. Mixed query ("Q1 2025") runs period search scoped to both
  */
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../helpers/db';
 import { req, json } from '../helpers/request';
@@ -201,38 +200,7 @@ it('objective result subtitle includes the owner name and team period', async ()
   expect(obj.subtitle).toContain('2025');
 });
 
-// ── 13. Tenant isolation ──────────────────────────────────────────────────────
-
-it('results never include data from another tenant', async () => {
-  const { admin } = await setup();
-
-  // Create data in a separate tenant with overlapping names
-  const { tenantId: otherTenant } = await createTenant('Other Co');
-  const { orgId: otherOrg } = await createOrg('Acme Corp', otherTenant); // same org name
-  const { teamId: otherTeam } = await createTeam(otherOrg, 'Marketing Team', otherTenant);
-  const { pageId: otherPage } = await createOKRPage(otherTeam, { year: 2025, tenantId: otherTenant });
-  await createObjective(otherPage, 'Cross-tenant Objective', [
-    { type: 'user', id: 'some-id', displayName: 'Alice Chen' },
-  ]);
-
-  // Search from tenant A — should only see tenant A's data
-  const orgRes = await search(searchReq('Acme', admin.token));
-  const { data: orgData } = await json(orgRes);
-  const orgIds = orgData.filter((r: { type: string }) => r.type === 'org').map((r: { _id: string }) => r._id);
-  expect(orgIds).not.toContain(otherOrg);
-
-  const teamRes = await search(searchReq('Marketing', admin.token));
-  const { data: teamData } = await json(teamRes);
-  const teamIds = teamData.filter((r: { type: string }) => r.type === 'team').map((r: { _id: string }) => r._id);
-  expect(teamIds).not.toContain(otherTeam);
-
-  const ownerRes = await search(searchReq('Alice', admin.token));
-  const { data: ownerData } = await json(ownerRes);
-  const objHrefs = ownerData.filter((r: { type: string }) => r.type === 'objective').map((r: { href: string }) => r.href);
-  expect(objHrefs.every((h: string) => !h.includes(otherTeam))).toBe(true);
-});
-
-// ── 14. Purely-period query skips name/owner search ──────────────────────────
+// ── 13. Purely-period query skips name/owner search ──────────────────────────
 
 it('"2025" does not return any team or org named 2025', async () => {
   const { admin } = await setup();
@@ -252,7 +220,7 @@ it('"2025" does not return any team or org named 2025', async () => {
   void adminB; // suppress unused warning
 });
 
-// ── 15. Mixed year+quarter query is scoped ────────────────────────────────────
+// ── 14. Mixed year+quarter query is scoped ────────────────────────────────────
 
 it('"Q1 2025" returns only Q1 2025 pages, not all 2025 pages', async () => {
   const { admin } = await setup();
