@@ -87,7 +87,7 @@ export function ImportExportPanel({ teamId, year, period, teamName }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-20 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4">
+        <div className="absolute right-0 top-10 z-20 w-72 max-w-[calc(100vw-1rem)] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4">
           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             {teamName} — {periodLabel} {year}
           </p>

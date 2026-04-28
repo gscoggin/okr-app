@@ -58,7 +58,6 @@ beforeEach(() => clearTestDB());
 
 function demoReq(ip = '1.2.3.4') {
   const r = req('GET', '/api/demo/session');
-  // @ts-expect-error — override headers for test
   r.headers.set('x-forwarded-for', ip);
   return r;
 }

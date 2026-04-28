@@ -124,14 +124,24 @@ export default async function CompanyDashboard() {
                             <Link
                               key={pg._id.toString()}
                               href={`/teams/${team._id}/${periodSlug}`}
-                              className="flex items-center px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition gap-4"
+                              className="flex flex-col sm:flex-row sm:items-center px-4 py-3 sm:py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition gap-1 sm:gap-4"
                             >
-                              <span className="text-sm text-gray-600 dark:text-gray-400 w-24">{periodLabel(period)}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pg.status === 'published' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'}`}>
-                                {pg.status}
-                              </span>
-                              <span className="text-sm text-gray-500 dark:text-gray-400">{objs.length} objective{objs.length !== 1 ? 's' : ''}</span>
-                              <div className="ml-auto" {...(orgIdx === 0 && teamIdx === 0 ? { 'data-tour': 'score-ring' } : {})}>
+                              {/* Mobile: period + ring on top row */}
+                              <div className="flex items-center justify-between sm:contents">
+                                <span className="text-sm text-gray-600 dark:text-gray-400 sm:w-24">{periodLabel(period)}</span>
+                                <div className="sm:hidden" {...(orgIdx === 0 && teamIdx === 0 ? { 'data-tour': 'score-ring' } : {})}>
+                                  <RingGauge score={score ?? null} size={36} />
+                                </div>
+                              </div>
+                              {/* Status + count */}
+                              <div className="flex items-center gap-2 sm:contents">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pg.status === 'published' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'}`}>
+                                  {pg.status}
+                                </span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">{objs.length} objective{objs.length !== 1 ? 's' : ''}</span>
+                              </div>
+                              {/* Desktop ring */}
+                              <div className="hidden sm:block ml-auto" {...(orgIdx === 0 && teamIdx === 0 ? { 'data-tour': 'score-ring' } : {})}>
                                 <RingGauge score={score ?? null} size={40} />
                               </div>
                             </Link>

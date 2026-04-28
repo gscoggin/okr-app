@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/components/AuthProvider';
 import { SearchBox } from '@/components/nav/SearchBox';
+import { useMobileSidebar } from '@/components/nav/MobileSidebarContext';
 
 export function Topbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { setOpen: openMobileSidebar } = useMobileSidebar();
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -35,6 +37,15 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center h-14 gap-4">
+        {/* Hamburger — mobile only */}
+        <button
+          className="md:hidden p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition shrink-0"
+          onClick={() => openMobileSidebar(true)}
+          aria-label="Open menu"
+        >
+          <HamburgerIcon />
+        </button>
+
         {/* Logo / Home */}
         <Link href="/" className="font-semibold text-gray-900 dark:text-gray-100 text-sm shrink-0 tracking-tight">
           OKRs
@@ -96,6 +107,14 @@ export function Topbar() {
         )}
       </div>
     </header>
+  );
+}
+
+function HamburgerIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
   );
 }
 

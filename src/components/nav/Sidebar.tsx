@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { IOrg, ITeam, TeamOKRSummary, TenantBranding } from '@/types';
+import { useMobileSidebar } from '@/components/nav/MobileSidebarContext';
 
 const QUARTER_ORDER = ['Q1', 'Q2', 'Q3', 'Q4'] as const;
 
@@ -23,12 +24,18 @@ export function Sidebar({ orgs, teams, teamSummaries, branding, tenantName, isAd
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { open: mobileOpen, setOpen: setMobileOpen } = useMobileSidebar();
 
   // Read persisted collapsed state after mount to avoid hydration mismatch
   useEffect(() => {
     setCollapsed(localStorage.getItem(SIDEBAR_KEY) === 'true');
     setMounted(true);
   }, []);
+
+  // Close mobile drawer on navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
 
   const toggleCollapsed = () => {
     setCollapsed((c) => {
@@ -72,10 +79,116 @@ export function Sidebar({ orgs, teams, teamSummaries, branding, tenantName, isAd
   const workspaceLetter = (tenantName ?? 'W').charAt(0).toUpperCase();
   const isCollapsed = mounted && collapsed;
 
+  // ── Mobile drawer (always rendered, always shows expanded content) ──────────
+  const mobileDrawer = (
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 md:hidden w-72 bg-white dark:bg-gray-900 shadow-xl flex flex-col transform transition-transform duration-200 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-2.5 px-3 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 flex-1 min-w-0 hover:opacity-80 transition">
+            {branding?.logoUrl ? (
+              <img src={branding.logoUrl} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+            ) : (
+              <span
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+                style={{ backgroundColor: branding?.primaryColor ?? '#2563eb' }}
+              >
+                {workspaceLetter}
+              </span>
+            )}
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{tenantName || 'Workspace'}</span>
+          </Link>
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            className="shrink-0 p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+        {/* Main nav */}
+        <div className="flex-1 overflow-y-auto py-3 px-2">
+          <p className="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Organizations</p>
+          {orgs.length === 0 && (
+            <div className="px-2 py-3">
+              <p className="text-xs text-gray-400 mb-1">No organizations yet.</p>
+              {isAdmin && (
+                <Link href="/admin" className="text-xs text-blue-600 hover:underline font-medium">Set up in Admin →</Link>
+              )}
+            </div>
+          )}
+          {orgs.map((org) => (
+            <div key={org._id} className="mb-1">
+              <div className="flex items-center">
+                <button onClick={() => toggle(org._id)} className="p-0.5 text-gray-400 hover:text-gray-600 shrink-0">
+                  <ChevronIcon open={!!expanded[org._id]} small />
+                </button>
+                <Link
+                  href={`/orgs/${org._id}`}
+                  className={`flex-1 px-2 py-1.5 text-sm rounded-md font-medium ${
+                    pathname === `/orgs/${org._id}`
+                      ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {org.name}
+                </Link>
+              </div>
+              {expanded[org._id] && (
+                <div className="ml-4 mt-0.5 space-y-0.5">
+                  {teamsByOrg(org._id).map((team) => (
+                    <TeamNavItem
+                      key={team._id}
+                      team={team}
+                      subTeams={subTeams(team._id)}
+                      allTeams={teams}
+                      summary={summaryByTeam.get(team._id)}
+                      pathname={pathname}
+                      expanded={expanded}
+                      onToggle={toggle}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Bottom nav */}
+        <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 py-2 px-2 space-y-0.5">
+          <Link href="/guide" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md ${pathname === '/guide' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+            <GuideIcon />Guide
+          </Link>
+          {isAdmin && (
+            <Link href="/admin" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md ${pathname === '/admin' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+              <AdminIcon />Admin
+            </Link>
+          )}
+          {isAdmin && (
+            <Link href="/settings" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md ${pathname === '/settings' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+              <SettingsIcon />Settings
+            </Link>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
   // ── Collapsed rail ──────────────────────────────────────────────────────────
   if (isCollapsed) {
     return (
-      <nav className="w-10 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-full flex flex-col items-center py-2 gap-2">
+      <>
+        {mobileDrawer}
+        <nav className="hidden md:flex w-10 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-full flex-col items-center py-2 gap-2">
         {/* Expand button */}
         <button
           onClick={toggleCollapsed}
@@ -116,13 +229,16 @@ export function Sidebar({ orgs, teams, teamSummaries, branding, tenantName, isAd
             <SettingsIcon />
           </Link>
         )}
-      </nav>
+        </nav>
+      </>
     );
   }
 
   // ── Expanded sidebar ────────────────────────────────────────────────────────
   return (
-    <nav data-tour="sidebar" className="w-56 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-full flex flex-col">
+    <>
+      {mobileDrawer}
+    <nav data-tour="sidebar" className="hidden md:flex w-56 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-full flex-col">
       {/* Tenant branding header */}
       <div className="flex items-center gap-2.5 px-3 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
         <Link href="/" className="flex items-center gap-2.5 flex-1 min-w-0 hover:opacity-80 transition">
@@ -241,6 +357,7 @@ export function Sidebar({ orgs, teams, teamSummaries, branding, tenantName, isAd
         )}
       </div>
     </nav>
+    </>
   );
 }
 
@@ -373,6 +490,14 @@ function TeamNavItem({
         </div>
       )}
     </div>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
   );
 }
 

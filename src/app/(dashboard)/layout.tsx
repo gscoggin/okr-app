@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { Topbar } from '@/components/nav/Topbar';
 import { Sidebar } from '@/components/nav/Sidebar';
 import { DemoProvider } from '@/components/demo/DemoContext';
+import { MobileSidebarProvider } from '@/components/nav/MobileSidebarContext';
 import { connectDB } from '@/lib/mongodb';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import Org from '@/models/Org';
@@ -88,6 +89,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DemoProvider>
+      <MobileSidebarProvider>
       <div className="flex flex-col h-screen">
         <Topbar />
         <div className="flex flex-1 min-h-0">
@@ -102,6 +104,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">{children}</main>
         </div>
       </div>
+      </MobileSidebarProvider>
     </DemoProvider>
   );
 }
