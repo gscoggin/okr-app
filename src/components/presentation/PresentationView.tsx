@@ -87,8 +87,8 @@ function KRRow({ kr, index }: { kr: IKeyResult; index: number }) {
     kr.confidence === 'low'    ? 'border-l-[3px] border-l-red-400' : '';
 
   return (
-    <div className={`py-4 px-5 border-b border-gray-100 dark:border-gray-700/60 last:border-0 ${accentBorder}`}>
-      <div className="flex items-start gap-4">
+    <div className={`py-4 px-4 sm:px-5 border-b border-gray-100 dark:border-gray-700/60 last:border-0 ${accentBorder}`}>
+      <div className="flex items-start gap-3 sm:gap-4">
 
         {/* Left: label + title + metadata */}
         <div className="flex-1 min-w-0">
@@ -224,10 +224,10 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref, teamId
     <div className="max-w-4xl mx-auto px-4 py-8">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-6 mb-10 flex-wrap">
+      <div className="flex items-start justify-between gap-4 mb-10 flex-wrap">
 
         {/* Left: team identity + period nav */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 min-w-0">
           {teamIconUrl && (
             <img
               src={teamIconUrl}
@@ -235,17 +235,17 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref, teamId
               className="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5"
             />
           )}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{teamName}</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">{teamName}</h1>
             <div className="mt-1.5">
               <PeriodNav teamId={teamId} current={page.period} />
             </div>
           </div>
         </div>
 
-        {/* Right: status + overall ring */}
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="text-right space-y-1.5">
+        {/* Right: status + overall ring — side-by-side on mobile, stacked on desktop */}
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="sm:text-right space-y-1.5">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Overall</p>
             <span
               className={`inline-block text-xs px-2.5 py-1 rounded-full font-semibold ${
@@ -276,7 +276,7 @@ export function PresentationView({ page, teamName, teamIconUrl, editHref, teamId
               </div>
             )}
           </div>
-          <RingGauge score={pageScore ?? null} size={80} />
+          <RingGauge score={pageScore ?? null} size={64} />
         </div>
       </div>
 

@@ -315,7 +315,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-sm flex-wrap justify-end">
+        <div className="flex items-center gap-3 text-sm flex-wrap w-full sm:w-auto justify-start sm:justify-end">
           {doneHref && (
             <Link
               href={doneHref}

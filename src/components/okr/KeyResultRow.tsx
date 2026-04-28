@@ -98,9 +98,9 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg">
+        <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg">
           {/* Owners */}
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
               Owners {canEdit && <span className="text-red-400">*</span>}
             </label>
@@ -124,7 +124,7 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
           </div>
 
           {/* Metric */}
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Metric</label>
             {canEdit ? (
               <div className="flex flex-col gap-2">
@@ -216,7 +216,7 @@ export function KeyResultRow({ kr, canEdit, onChange, onDelete }: KeyResultRowPr
           </div>
 
           {/* Comments */}
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Comments</label>
             {canEdit ? (
               <textarea

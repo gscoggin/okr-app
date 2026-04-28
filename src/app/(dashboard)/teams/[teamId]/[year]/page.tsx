@@ -45,12 +45,12 @@ export default async function AnnualOKRPage({ params, searchParams }: Props) {
 
   const breadcrumb = (
     <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 py-3">
-      <nav className="text-sm text-gray-500 flex items-center gap-2">
-        <Link href="/" className="hover:text-gray-700 dark:hover:text-gray-300">Company</Link>
-        <span>/</span>
-        <Link href={`/teams/${teamId}`} className="hover:text-gray-700 dark:hover:text-gray-300">{team.name}</Link>
-        <span>/</span>
-        <span className="text-gray-800 dark:text-gray-200 font-medium">{year}</span>
+      <nav className="text-sm text-gray-500 flex items-center gap-2 flex-wrap min-w-0">
+        <Link href="/" className="hover:text-gray-700 dark:hover:text-gray-300 shrink-0">Company</Link>
+        <span className="shrink-0">/</span>
+        <Link href={`/teams/${teamId}`} className="hover:text-gray-700 dark:hover:text-gray-300 truncate max-w-[12rem]">{team.name}</Link>
+        <span className="shrink-0">/</span>
+        <span className="text-gray-800 dark:text-gray-200 font-medium shrink-0">{year}</span>
       </nav>
     </div>
   );
