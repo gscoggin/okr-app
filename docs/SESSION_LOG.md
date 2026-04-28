@@ -2,6 +2,23 @@
 
 ---
 
+### 2026-04-28 — Mobile responsive (all phases), PWA, session wrap + project pause
+
+**Status:** All shipped. main = demo. Project paused in good shape.
+
+**Completed:**
+- Mobile Phase 1: `MobileSidebarContext`, hamburger in Topbar, slide-in drawer with backdrop, dashboard rows stack on mobile, ImportExportPanel dropdown clamped to viewport
+- Mobile Phase 2: OKRPageEditor action buttons full-width on mobile, KeyResultRow grid switches to 2-col at `md:` (768px) not `sm:`, PresentationView header stacks with ring 80→64px, breadcrumbs flex-wrap with truncation
+- Mobile Phase 3: Org page rows stacked on mobile (same pattern as dashboard), PWA manifest, `public/icon.svg` placeholder, minimal service worker, `ServiceWorkerRegistration` client component, Next.js `Viewport` export with theme-color
+- Demo branch nuclear-synced to main — both Vercel deployments triggered
+
+**Decisions:**
+- No separate mobile binary — responsive web + PWA covers the use case
+- Service worker is minimal (no caching strategy) — enough for installability, not offline-first
+- `public/icon.svg` is a blue "O" placeholder; replace with branded 192×512px PNGs when ready
+
+---
+
 ### 2026-04-27 — Security hardening, super_admin platform management, test cleanup
 
 **Status:** All shipped to main. 226 tests passing across 20 suites.
@@ -24,11 +41,6 @@
 **Decisions:**
 - Cannot delete own tenant or promote to super_admin via platform routes (safety rails)
 - Cannot modify own account via tenant user routes
-
-**Next:**
-- P1: Batch import/export (CSV) or OKR alignment tree
-- P2: AI features (stubs in place, need `ANTHROPIC_API_KEY`)
-- Address Dependabot moderate vulnerability on repo
 
 ---
 
@@ -187,17 +199,19 @@
 
 ## Roadmap
 
-### P0 — Must ship before real users
+### P0 — Complete ✅
 - [x] Tenant isolation (security)
 - [x] Password reset
 - [x] Host on Vercel + Atlas
-- [x] Super_admin platform management (tenant list, user management, workspace deletion, cross-tenant invite codes)
+- [x] Super_admin platform management
 
 ### P1 — Core product completeness
-- [ ] Batch import/export (CSV upload to create OKRs; export to CSV/PDF)
+- [x] Mobile responsive (Phase 1: sidebar drawer, stacked rows; Phase 2: editor/KR/presentation; Phase 3: org page, PWA)
+- [ ] **Markdown import** — format designed (see Handoff section below), not built
+- [ ] CSV import — export works; import route exists; needs parity with MD import
 - [ ] OKR alignment view (company-level tree showing how team OKRs roll up)
 
-### P2 — AI features (stubs in place, need ANTHROPIC_API_KEY)
+### P2 — AI features (stubs in place, need `ANTHROPIC_API_KEY`)
 - [ ] AI objective suggestions (`OKRPageEditor`)
 - [ ] AI objective quality feedback (`ObjectiveCard`)
 - [ ] AI KR quality critique (`KeyResultRow`)
@@ -206,7 +220,61 @@
 - [ ] Email notifications (weekly digest, score updates)
 - [ ] Public read-only share links for OKR pages
 - [ ] Comments / reactions on objectives and KRs
-- [ ] Mobile-responsive polish
+- [ ] Branded PWA icons (replace `public/icon.svg` placeholder with 192×512px PNGs)
+
+### Open issues
+- Dependabot moderate vulnerability — check GitHub Security tab
+
+---
+
+## Handoff: Picking This Up Later
+
+### State of the codebase
+- **226 tests, 20 suites, all passing** — `npm test`
+- `main` = `demo`, both deployed on Vercel
+- TypeScript strict, zero errors — `npx tsc --noEmit`
+
+### First thing to do in a new session
+```bash
+npm run dev        # dev server at localhost:3000
+npx tsc --noEmit   # confirm clean
+npm test           # confirm 226/226
+```
+Then read this file top-to-bottom.
+
+### Next concrete task: Markdown import
+
+Agreed format:
+```markdown
+# Team: Marketing
+# Period: 2025-Q2
+
+## Objective: Grow brand awareness
+- Key Result: Increase website traffic to 50,000 monthly visitors
+- Key Result: Achieve 500 newsletter signups
+
+## Objective: Launch product rebrand
+- Key Result: Finalize new brand guidelines by May 1
+```
+
+Rules: `# Team:` + `# Period:` required; period format `YYYY` or `YYYY-Q1/Q2/Q3/Q4`; `## Objective:` creates an objective; `- Key Result:` creates a KR. v1 is name + structure only — no owners, scores, or metadata. On conflict: same overwrite-confirmation flow as CSV.
+
+Files to touch:
+- `src/app/api/teams/[teamId]/import/route.ts` — extend to handle `.md`
+- `src/components/okr/ImportExportPanel.tsx` — add `.md` to accepted types
+- `src/app/api/teams/[teamId]/export/route.ts` — verify exported MD matches import spec
+
+### Key architecture reminders
+- **Auth**: JWT in httpOnly cookie (`okr_token`); `requireAuth(req)` on every route
+- **Tenant isolation**: every DB query needs `tenantId: user.tenantId` — never skip
+- **Super_admin**: intentionally bypasses tenant scoping; guard with `isSuperAdmin(user)`
+- **Demo**: `isDemo: true` in JWT; all write routes reject it; lives in separate Atlas DB (`/okr-demo`)
+- **Rate limiting**: `isRateLimited()` in `src/lib/rateLimit.ts` — no-ops in test env
+- **Email**: Resend SDK v6 returns `{data, error}`, never throws — always check `error`, never try/catch
+- **Branching**: all work to `main` first; demo via cherry-pick or nuclear sync (`git reset --hard main && git push --force origin demo`)
+
+### AI features (when ready)
+Search `TODO Phase 2` — stubs in `OKRPageEditor`, `ObjectiveCard`, `KeyResultRow`. Needs `ANTHROPIC_API_KEY` in `.env.local`. Use `claude-sonnet-4-6` or `claude-opus-4-7`.
 
 ---
 
