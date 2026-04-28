@@ -2,6 +2,36 @@
 
 ---
 
+### 2026-04-27 — Security hardening, super_admin platform management, test cleanup
+
+**Status:** All shipped to main. 226 tests passing across 20 suites.
+
+**Completed:**
+- Rate limiting (`src/lib/rateLimit.ts`) — map-based sliding window, bypassed in test env
+- Input validation hardening across auth and demo routes
+- Resend SDK v6 fix: both email functions return `Promise<boolean>`; `forgot-password` surfaces failures
+- Tenant-scoped invite codes: admins generate `workspace_join`, super_admin generates `workspace_create`
+- Super_admin platform management ("god mode"):
+  - `GET /api/tenants` — list all workspaces with user/team counts
+  - `DELETE /api/tenants/[id]` — cascade delete (KRs → objectives → pages → teams → orgs → invite codes → users → tenant)
+  - `GET /api/tenants/[id]/users` — list users in any tenant
+  - `PATCH/DELETE /api/tenants/[id]/users/[uid]` — change role / delete user cross-tenant
+  - `POST /api/invite-codes/send` — email an already-generated code (super_admin only)
+  - Admin UI Platform section: tenant list, expand/collapse users, inline role picker, workspace deletion with typed-name confirm, cross-tenant join code generation with optional email delivery
+- 14 new tests in `superAdmin.test.ts`
+- Test suite cleanup: merged `demoSession` + `demoWriteProtection` → `demo.test.ts`; trimmed redundant auth/tenant/search tests (-9 tests, -1 file)
+
+**Decisions:**
+- Cannot delete own tenant or promote to super_admin via platform routes (safety rails)
+- Cannot modify own account via tenant user routes
+
+**Next:**
+- P1: Batch import/export (CSV) or OKR alignment tree
+- P2: AI features (stubs in place, need `ANTHROPIC_API_KEY`)
+- Address Dependabot moderate vulnerability on repo
+
+---
+
 ### 2026-04-24 — Invite code overhaul, test coverage expansion, branching strategy
 
 **Status:** All shipped to main. demo branch reset to main (clean slate).
@@ -160,7 +190,8 @@
 ### P0 — Must ship before real users
 - [x] Tenant isolation (security)
 - [x] Password reset
-- [ ] Host on Vercel + Atlas
+- [x] Host on Vercel + Atlas
+- [x] Super_admin platform management (tenant list, user management, workspace deletion, cross-tenant invite codes)
 
 ### P1 — Core product completeness
 - [ ] Batch import/export (CSV upload to create OKRs; export to CSV/PDF)
