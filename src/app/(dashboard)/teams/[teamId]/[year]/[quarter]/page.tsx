@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { connectDB } from '@/lib/mongodb';
 import Team from '@/models/Team';
 import OKRPage from '@/models/OKRPage';
@@ -12,7 +11,7 @@ import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
 import { PresentationView } from '@/components/presentation/PresentationView';
 import { CreateQuarterlyPageView } from './CreateQuarterlyPageView';
 import { SharedObjectivesSection } from '@/components/okr/SharedObjectivesSection';
-import { ImportExportPanel } from '@/components/okr/ImportExportPanel';
+import { OKRPageStickyHeader, type Crumb } from '@/components/nav/OKRPageStickyHeader';
 import { serializeOKRPageWithNested } from '@/lib/serializeOKR';
 import type { IOKRPage, Quarter } from '@/types';
 
@@ -51,30 +50,24 @@ export default async function QuarterlyOKRPage({ params, searchParams }: Props) 
     'period.quarter': quarter,
   }).lean();
 
-  const breadcrumb = (
-    <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 py-3">
-      <nav className="text-sm text-gray-500 flex items-center gap-2 flex-wrap min-w-0">
-        <Link href="/" className="hover:text-gray-700 dark:hover:text-gray-300 shrink-0">Company</Link>
-        <span className="shrink-0">/</span>
-        <Link href={`/teams/${teamId}`} className="hover:text-gray-700 dark:hover:text-gray-300 truncate max-w-[10rem]">{team.name}</Link>
-        <span className="shrink-0">/</span>
-        <Link href={`/teams/${teamId}/${year}`} className="hover:text-gray-700 dark:hover:text-gray-300 shrink-0">{year}</Link>
-        <span className="shrink-0">/</span>
-        <span className="text-gray-800 dark:text-gray-200 font-medium shrink-0">{quarter}</span>
-      </nav>
-    </div>
-  );
+  const breadcrumbs: Crumb[] = [
+    { label: 'Company', href: '/' },
+    { label: team.name, href: `/teams/${teamId}` },
+    { label: String(year), href: `/teams/${teamId}/${year}` },
+    { label: quarter },
+  ];
 
   if (!pageDoc) {
     return (
       <div>
-        {breadcrumb}
+        <OKRPageStickyHeader breadcrumbs={breadcrumbs} teamId={teamId} />
         <CreateQuarterlyPageView
           teamId={teamId}
           year={year}
           quarter={quarter}
           teamName={team.name}
           canEdit={canEdit}
+          breadcrumbs={breadcrumbs}
         />
       </div>
     );
@@ -87,24 +80,21 @@ export default async function QuarterlyOKRPage({ params, searchParams }: Props) 
   const serializedPage: IOKRPage = serializeOKRPageWithNested(pageDoc, objectives, keyResults);
 
   const baseHref = `/teams/${teamId}/${year}/${quarterSlug.toLowerCase()}`;
-
-  const toolbar = editMode && (
-    <div className="flex justify-end px-4 sm:px-6 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-      <ImportExportPanel teamId={teamId} year={year} period={quarterSlug.toLowerCase()} teamName={team.name} />
-    </div>
-  );
+  const importPeriod = quarterSlug.toLowerCase();
 
   return (
     <div>
-      {breadcrumb}
-      {toolbar}
       {editMode ? (
         <OKRPageEditor
           initialPage={serializedPage}
           canEdit
           teamId={teamId}
+          teamName={team.name}
           teamIconUrl={team.iconUrl ?? undefined}
           doneHref={baseHref}
+          breadcrumbs={breadcrumbs}
+          importPeriod={importPeriod}
+          year={year}
         />
       ) : (
         <PresentationView
@@ -113,6 +103,10 @@ export default async function QuarterlyOKRPage({ params, searchParams }: Props) 
           teamIconUrl={team.iconUrl ?? undefined}
           editHref={canEdit ? `${baseHref}?edit` : undefined}
           teamId={teamId}
+          breadcrumbs={breadcrumbs}
+          importPeriod={importPeriod}
+          year={year}
+          canImportExport={canEdit}
         />
       )}
       <div className="max-w-4xl mx-auto px-4 pb-12">

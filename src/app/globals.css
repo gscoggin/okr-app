@@ -31,3 +31,28 @@ input, textarea, select {
   font-family: inherit;
 }
 
+/* ── Print styles ─────────────────────────────────────────────────────────
+   Save-as-PDF from any page: sidebar, topbar, and sticky OKR header use
+   `print:hidden` on their own class list. These rules handle layout/color
+   details Tailwind's utilities can't reach cleanly. */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  /* Undo the dashboard layout's fixed-height scrollable main so content flows */
+  .h-screen {
+    height: auto !important;
+    display: block !important;
+  }
+  main {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  /* Avoid awkward page breaks inside OKR cards */
+  .rounded-2xl, .rounded-xl {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+

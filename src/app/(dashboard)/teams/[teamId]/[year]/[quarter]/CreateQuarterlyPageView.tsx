@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
+import type { Crumb } from '@/components/nav/OKRPageStickyHeader';
 import type { IOKRPage, Quarter } from '@/types';
 
 interface Props {
@@ -11,9 +12,10 @@ interface Props {
   quarter: Quarter;
   teamName: string;
   canEdit: boolean;
+  breadcrumbs?: Crumb[];
 }
 
-export function CreateQuarterlyPageView({ teamId, year, quarter, teamName, canEdit }: Props) {
+export function CreateQuarterlyPageView({ teamId, year, quarter, teamName, canEdit, breadcrumbs }: Props) {
   const [page, setPage] = useState<IOKRPage | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -48,7 +50,18 @@ export function CreateQuarterlyPageView({ teamId, year, quarter, teamName, canEd
   };
 
   if (page) {
-    return <OKRPageEditor initialPage={page} canEdit={canEdit} teamId={teamId} />;
+    return (
+      <OKRPageEditor
+        initialPage={page}
+        canEdit={canEdit}
+        teamId={teamId}
+        teamName={teamName}
+        breadcrumbs={breadcrumbs}
+        importPeriod={quarter.toLowerCase()}
+        year={year}
+        doneHref={`/teams/${teamId}/${year}/${quarter.toLowerCase()}`}
+      />
+    );
   }
 
   return (

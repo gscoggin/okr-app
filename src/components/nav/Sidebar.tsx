@@ -238,7 +238,7 @@ export function Sidebar({ orgs, teams, teamSummaries, branding, tenantName, isAd
   return (
     <>
       {mobileDrawer}
-    <nav data-tour="sidebar" className="hidden md:flex w-56 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-full flex-col">
+    <nav data-tour="sidebar" className="hidden md:flex w-56 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-full flex-col print:hidden">
       {/* Tenant branding header */}
       <div className="flex items-center gap-2.5 px-3 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
         <Link href="/" className="flex items-center gap-2.5 flex-1 min-w-0 hover:opacity-80 transition">

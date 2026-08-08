@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { OKRPageEditor } from '@/components/okr/OKRPageEditor';
+import type { Crumb } from '@/components/nav/OKRPageStickyHeader';
 import type { IOKRPage } from '@/types';
 
 interface Props {
@@ -9,9 +10,10 @@ interface Props {
   year: number;
   teamName: string;
   canEdit: boolean;
+  breadcrumbs?: Crumb[];
 }
 
-export function CreateOKRPageView({ teamId, year, teamName, canEdit }: Props) {
+export function CreateOKRPageView({ teamId, year, teamName, canEdit, breadcrumbs }: Props) {
   const [page, setPage] = useState<IOKRPage | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -42,7 +44,18 @@ export function CreateOKRPageView({ teamId, year, teamName, canEdit }: Props) {
   };
 
   if (page) {
-    return <OKRPageEditor initialPage={page} canEdit={canEdit} teamId={teamId} />;
+    return (
+      <OKRPageEditor
+        initialPage={page}
+        canEdit={canEdit}
+        teamId={teamId}
+        teamName={teamName}
+        breadcrumbs={breadcrumbs}
+        importPeriod="annual"
+        year={year}
+        doneHref={`/teams/${teamId}/${year}`}
+      />
+    );
   }
 
   return (

@@ -35,7 +35,7 @@ export function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+    <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 print:hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center h-14 gap-4">
         {/* Hamburger — mobile only */}
         <button

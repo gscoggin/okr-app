@@ -6,9 +6,10 @@ import Link from 'next/link';
 import type { IOKRPage, IObjective, IKeyResult, OKRStatus } from '@/types';
 import { computePageScore } from '@/types';
 import { ObjectiveCard } from './ObjectiveCard';
+import { ImportExportPanel } from './ImportExportPanel';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { IconUpload } from '@/components/ui/IconUpload';
-import { PeriodNav } from '@/components/nav/PeriodNav';
+import { OKRPageStickyHeader, PrintButton, type Crumb } from '@/components/nav/OKRPageStickyHeader';
 import { computeTrackingTo } from '@/lib/trackingTo';
 
 const AUTOSAVE_INTERVAL_MS = 3000;
@@ -18,11 +19,25 @@ interface OKRPageEditorProps {
   initialPage: IOKRPage;
   canEdit: boolean;
   teamId: string;
+  teamName?: string;
   teamIconUrl?: string;
   doneHref?: string;
+  breadcrumbs?: Crumb[];
+  importPeriod?: string;
+  year?: number;
 }
 
-export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initialTeamIconUrl, doneHref }: OKRPageEditorProps) {
+export function OKRPageEditor({
+  initialPage,
+  canEdit,
+  teamId,
+  teamName,
+  teamIconUrl: initialTeamIconUrl,
+  doneHref,
+  breadcrumbs,
+  importPeriod,
+  year,
+}: OKRPageEditorProps) {
   const [teamIconUrl, setTeamIconUrl] = useState<string | undefined>(initialTeamIconUrl);
   const router = useRouter();
   const [page, setPage] = useState<IOKRPage>(() => {
@@ -255,8 +270,68 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
   const pageScore = computePageScore(page.objectives);
   const pageTrackingTo = computeTrackingTo(pageScore, page.period);
 
+  const stickyRightSlot = (
+    <>
+      {doneHref && (
+        <Link
+          href={doneHref}
+          className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+        >
+          ← Done
+        </Link>
+      )}
+      <PrintButton />
+      {canEdit && importPeriod && year != null && (
+        <ImportExportPanel
+          teamId={teamId}
+          year={year}
+          period={importPeriod}
+          teamName={teamName ?? ''}
+        />
+      )}
+      <span className="text-xs text-gray-400 dark:text-gray-500 min-w-[3.5rem]">
+        {saving === 'saving' && 'Saving…'}
+        {saving === 'saved' && 'Saved'}
+        {saving === 'error' && <span className="text-red-400">Save failed</span>}
+      </span>
+      {publishError && (
+        <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 max-w-xs text-right">
+          {publishError}
+        </span>
+      )}
+      {canEdit && page.status === 'draft' && (
+        <button
+          onClick={() => setPageStatus('published')}
+          disabled={publishing}
+          className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+        >
+          {publishing ? 'Publishing…' : 'Publish'}
+        </button>
+      )}
+      {canEdit && page.status === 'published' && (
+        <button
+          onClick={() => setPageStatus('draft')}
+          disabled={publishing}
+          className="px-4 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+        >
+          {publishing ? 'Reverting…' : 'Revert to Draft'}
+        </button>
+      )}
+    </>
+  );
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <>
+      {breadcrumbs && (
+        <OKRPageStickyHeader
+          breadcrumbs={breadcrumbs}
+          teamId={teamId}
+          period={page.period}
+          rightSlot={stickyRightSlot}
+        />
+      )}
+
+      <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div className="flex items-start gap-3">
@@ -272,9 +347,10 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
             <img src={teamIconUrl} alt="team icon" className="w-11 h-11 rounded-xl object-cover border border-gray-200" />
           )}
           <div>
-          <PeriodNav teamId={teamId} current={page.period} />
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <h1 className="text-xl font-bold text-gray-900">OKRs</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {teamName ? `${teamName} OKRs` : 'OKRs'}
+            </h1>
             <RingGauge score={pageScore ?? null} trackingTo={pageTrackingTo} size={48} />
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -314,51 +390,6 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
           </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-3 text-sm flex-wrap w-full sm:w-auto justify-start sm:justify-end">
-          {doneHref && (
-            <Link
-              href={doneHref}
-              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
-              ← Done editing
-            </Link>
-          )}
-
-          {/* Autosave indicator */}
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            {saving === 'saving' && 'Saving…'}
-            {saving === 'saved' && 'Saved'}
-            {saving === 'error' && (
-              <span className="text-red-400">Save failed</span>
-            )}
-          </span>
-
-          {publishError && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 max-w-xs text-right">
-              {publishError}
-            </span>
-          )}
-
-          {canEdit && page.status === 'draft' && (
-            <button
-              onClick={() => setPageStatus('published')}
-              disabled={publishing}
-              className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-            >
-              {publishing ? 'Publishing…' : 'Publish'}
-            </button>
-          )}
-          {canEdit && page.status === 'published' && (
-            <button
-              onClick={() => setPageStatus('draft')}
-              disabled={publishing}
-              className="px-4 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition"
-            >
-              {publishing ? 'Reverting…' : 'Revert to Draft'}
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Objectives */}
@@ -396,6 +427,7 @@ export function OKRPageEditor({ initialPage, canEdit, teamId, teamIconUrl: initi
 
       {/* AI stub placeholder */}
       {/* TODO Phase 2: AI suggest objectives button — <AIObjectiveSuggestor pageId={page._id} /> */}
-    </div>
+      </div>
+    </>
   );
 }
